@@ -4,7 +4,9 @@
 
 using namespace std;
 
-// Pide una cantidad valida de nodos.
+
+
+// Pide la cantiad de nodos y como se nombrarán con letras del abecedario por ahora el limite maximo es 26....
 int pedirCantidadNodos() {
     int cantidad;
 
@@ -20,17 +22,21 @@ int pedirCantidadNodos() {
     return cantidad;
 }
 
-// Convierte una letra minuscula en mayuscula.
+
+
+/*---------------------verificaciones de entrada de datos de cada nodo -------------------*/
+
+// Convierte una letra minuscula en mayuscula
 char convertirAMayuscula(char letra) {
     return static_cast<char>(toupper(letra));
 }
 
-// Comprueba que el caracter sea una letra entre A y Z.
+// Comprueba que el caracter sea una letra entre A y Z
 bool esLetraValida(char letra) {
     return letra >= 'A' && letra <= 'Z';
 }
 
-// Comprueba que la letra no haya sido usada en otro nodo.
+// Comprueba que la letra no haya sido usada en otro nodo
 bool letraRepetida(const vector<char>& nombres, char letra) {
     for (int i = 0; i < nombres.size(); i++) {
         if (nombres[i] == letra) {
@@ -40,8 +46,11 @@ bool letraRepetida(const vector<char>& nombres, char letra) {
 
     return false;
 }
+/*----------------------------------------------------------------------------------------*/
 
-// Pide una letra diferente para identificar cada nodo.
+
+
+// Pide una letra diferente para identificar cada nodo
 void pedirNombresNodos(vector<char>& nombres, int cantidadNodos) {
     char letra;
 
@@ -65,7 +74,7 @@ void pedirNombresNodos(vector<char>& nombres, int cantidadNodos) {
     }
 }
 
-// Permite elegir si el grafo es dirigido o no dirigido.
+//elegir si el grafo es dirigido o no dirigido
 int pedirTipoGrafo() {
     int opcion;
 
@@ -85,7 +94,7 @@ int pedirTipoGrafo() {
     return opcion;
 }
 
-// Permite elegir si el grafo es etiquetado o no etiquetado.
+//elegir si el grafo es etiquetado o no etiquetado.
 int pedirTipoEtiquetado() {
     int opcion;
 
@@ -105,7 +114,7 @@ int pedirTipoEtiquetado() {
     return opcion;
 }
 
-// Muestra los datos principales del grafo.
+//muestra los datos principales del grafo.
 void mostrarResumen(int cantidadNodos, int tipoGrafo, int tipoEtiquetado) {
     cout << "\nCantidad de nodos: " << cantidadNodos << endl;
 
@@ -122,7 +131,7 @@ void mostrarResumen(int cantidadNodos, int tipoGrafo, int tipoEtiquetado) {
     }
 }
 
-// Imprime la matriz junto con los nombres de los nodos.
+//i6mprime la matriz junto con los nombres de los nodos.
 void imprimirMatriz(const vector<vector<int>>& matriz, const vector<char>& nombres) {
     cout << "\nMatriz de adyacencia:" << endl;
     cout << "    ";
