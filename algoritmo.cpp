@@ -129,53 +129,99 @@ int pedirValorAdyacencia(const string& origen, const string& destino, TipoGrafo 
     string mensaje = "Existe la arista '" + origen + "'" + conector +
                      "'" + destino + "'? (0/1): ";
 
-    return leerEnteroEnRango(mensaje, 0, 1);
+    while (true) {
+        int valor = leerEnteroEnRango(mensaje, 0, 1);
+
+        if (origen != destino || valor == 0) {
+            return valor;
+        }
+
+        cout << "Se detecto un lazo en el nodo " << quoted(origen)
+             << ". Esta version usa grafos simples; ingrese 0.\n";
+    }
 }
 
 void ingresarMatriz(vector<vector<int>>& matriz,
                     const vector<string>& nombres,
                     TipoGrafo tipo) {
     int cantidad = static_cast<int>(matriz.size());
-    cout << "\nIngrese las conexiones del grafo.\n";
-
-    if (tipo == TipoGrafo::Dirigido) {
-        for (int i = 0; i < cantidad; i++) {
-            for (int j = 0; j < cantidad; j++) {
-                if (i != j) {
-                    matriz[i][j] = pedirValorAdyacencia(nombres[i], nombres[j], tipo);
-                }
-            }
-        }
-        return;
-    }
+    cout << "\nIngrese las conexiones del grafo, incluida la diagonal.\n";
+    cout << "La diagonal debe ser 0: esta version no admite lazos.\n";
 
     for (int i = 0; i < cantidad; i++) {
-        for (int j = i + 1; j < cantidad; j++) {
-            int valor = pedirValorAdyacencia(nombres[i], nombres[j], tipo);
-            matriz[i][j] = valor;
-            matriz[j][i] = valor;
+        int inicio = tipo == TipoGrafo::Dirigido ? 0 : i;
+
+        for (int j = inicio; j < cantidad; j++) {
+            matriz[i][j] = pedirValorAdyacencia(nombres[i], nombres[j], tipo);
+
+            if (tipo == TipoGrafo::NoDirigido) {
+                matriz[j][i] = matriz[i][j];
+            }
         }
     }
 }
 
-bool validarMatriz(const vector<vector<int>>& matriz, TipoGrafo tipo) {
+bool validarMatriz(const vector<vector<int>>& matriz,
+                   const vector<string>& nombres,
+                   TipoGrafo tipo,
+                   string& error) {
+    error.clear();
     int cantidad = static_cast<int>(matriz.size());
 
-    if (cantidad == 0) {
+    if (cantidad < 2 || cantidad > 26) {
+        error = "La matriz debe tener entre 2 y 26 filas.";
         return false;
     }
 
+    if (matriz.size() != nombres.size()) {
+        error = "La cantidad de filas no coincide con la cantidad de nodos.";
+        return false;
+    }
+
+    if (tipo != TipoGrafo::Dirigido && tipo != TipoGrafo::NoDirigido) {
+        error = "El tipo de grafo no es valido.";
+        return false;
+    }
+
+    // Todas las filas deben estar completas antes de consultar la diagonal o la simetria.
     for (int i = 0; i < cantidad; i++) {
-        if (static_cast<int>(matriz[i].size()) != cantidad || matriz[i][i] != 0) {
+        if (static_cast<int>(matriz[i].size()) != cantidad) {
+            error = "La fila de '" + nombres[i] + "' tiene " +
+                    to_string(matriz[i].size()) + " valores; se esperaban " +
+                    to_string(cantidad) + ".";
             return false;
         }
+    }
 
+    for (int i = 0; i < cantidad; i++) {
         for (int j = 0; j < cantidad; j++) {
             if (matriz[i][j] != 0 && matriz[i][j] != 1) {
+                error = "Valor invalido en ['" + nombres[i] + "']['" + nombres[j] +
+                        "']: " + to_string(matriz[i][j]) + ". Solo se permite 0 o 1.";
                 return false;
             }
+        }
+    }
 
-            if (tipo == TipoGrafo::NoDirigido && matriz[i][j] != matriz[j][i]) {
+    for (int i = 0; i < cantidad; i++) {
+        if (matriz[i][i] != 0) {
+            error = "Se detecto un lazo en el nodo '" + nombres[i] +
+                    "'. La diagonal debe ser 0 en un grafo simple.";
+            return false;
+        }
+    }
+
+    if (tipo == TipoGrafo::NoDirigido) {
+        for (int i = 0; i < cantidad; i++) {
+            for (int j = i + 1; j < cantidad; j++) {
+                if (matriz[i][j] == matriz[j][i]) {
+                    continue;
+                }
+
+                error = "Inconsistencia: de '" + nombres[i] + "' a '" + nombres[j] +
+                        "' hay " + to_string(matriz[i][j]) + ", pero de '" +
+                        nombres[j] + "' a '" + nombres[i] + "' hay " +
+                        to_string(matriz[j][i]) + ". El grafo no dirigido debe ser simetrico.";
                 return false;
             }
         }
@@ -490,12 +536,17 @@ int main() {
     vector<vector<int>> matrizAdyacencia(
         cantidadNodos, vector<int>(cantidadNodos, 0));
 
-    ingresarMatriz(matrizAdyacencia, nombresNodos, tipo);
+    string errorMatriz;
+    bool matrizValida;
 
-    if (!validarMatriz(matrizAdyacencia, tipo)) {
-        cerr << "La matriz de adyacencia no es valida.\n";
-        return 1;
-    }
+    do {
+        ingresarMatriz(matrizAdyacencia, nombresNodos, tipo);
+        matrizValida = validarMatriz(matrizAdyacencia, nombresNodos, tipo, errorMatriz);
+
+        if (!matrizValida) {
+            cout << errorMatriz << "\nVuelva a ingresar la matriz.\n";
+        }
+    } while (!matrizValida);
 
     mostrarResumen(nombresNodos, tipo);
     imprimirMatriz(matrizAdyacencia, nombresNodos);

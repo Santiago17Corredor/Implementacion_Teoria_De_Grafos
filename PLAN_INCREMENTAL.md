@@ -17,7 +17,7 @@ Este documento actualiza el plan a partir de `Historias de usuario.md`, revisado
 | Parte | Historias | Cambio verificable | Estado |
 | --- | --- | --- | --- |
 | 1 | HU-02 y adaptación de sus consumidores | Mínimo de dos nodos; identificadores personalizados y únicos; consultas, matriz y DOT compatibles. | Implementada; prueba de ejecución pendiente de compilador |
-| 2 | HU-04 | Validar todas las dimensiones antes de acceder a celdas; mensajes de inconsistencias; resolver captura y tratamiento de lazos. | Pendiente |
+| 2 | HU-04 | Validar todas las dimensiones antes de acceder a celdas; mensajes de inconsistencias; detectar lazos al capturar y pedir corregirlos. | Implementada para grafos no ponderados; ejecución pendiente de compilador |
 | 3 | HU-01, HU-03, HU-05 | Selección ponderado/no ponderado; captura de pesos y ausencia de conexión; representación matemática completa. | Pendiente |
 | 4 | HU-07 | Mostrar grados, grados de entrada/salida y aviso explícito de nodo aislado. | Pendiente |
 | 5 | HU-08 | Buscar y enumerar caminos simples entre origen y destino; secuencia, longitud y costo; tratar origen igual a destino. | Pendiente |
@@ -46,7 +46,7 @@ Cada parte se revisa antes de continuar. El estado de una historia con varios cr
 
 ## Decisiones por cerrar antes de las partes correspondientes
 
-1. **Lazos (parte 2):** HU-04 pide detectarlos e informarlos; falta acordar si se conservarán o se rechazarán después del aviso. Actualmente la diagonal se mantiene en cero.
+1. **Lazos (resuelto en la parte 2):** se conserva la regla de grafos simples. Se captura la diagonal, se detecta e informa el lazo si se escribe `1` y se solicita corregir a `0`. No se incorporan lazos al grafo.
 2. **Pesos (parte 3):** definir si se aceptan decimales y su rango. La ausencia de arista debe distinguirse del peso cero; se propone `x` al capturar, con una representación interna separada.
 3. **Enumeración (parte 5):** se propone enumerar caminos simples, porque permitir vueltas repetidas en ciclos puede producir infinitos recorridos. No se truncarán resultados silenciosamente; cualquier límite debe indicarse.
 4. **Comparación (parte 12):** proponer al equipo validar igual costo mínimo y rutas válidas. Dos algoritmos pueden devolver rutas distintas con el mismo costo. Exigir una ruta idéntica requiere acordar el desempate.
@@ -99,3 +99,48 @@ git push
 ```
 
 Estos comandos son una guía; no se han ejecutado el `git add`, el commit ni el push. Revisar también los archivos que ya pudieran estar preparados antes del commit.
+
+## Parte 2: integridad de la matriz (HU-04)
+
+Cambios implementados:
+
+- Validar rango de nodos, cantidad de nombres y tipo de grafo.
+- Revisar la longitud de todas las filas antes de acceder a cualquier celda, incluida la diagonal y la posición simétrica.
+- Rechazar valores distintos de `0/1`, identificando la celda y el valor recibido.
+- Informar el nodo de un lazo y conservar la restricción de grafos simples.
+- Informar las dos direcciones y sus valores cuando una matriz no dirigida sea asimétrica.
+- Devolver el detalle mediante `string& error`; la función de validación no imprime ni modifica los datos.
+- Permitir corregir errores de captura y volver a ingresar la matriz si la revisión final encuentra una inconsistencia.
+
+Nuevo orden de captura: todas las celdas para grafos dirigidos; triángulo superior incluida la diagonal para no dirigidos. Ejemplo de tres nodos no dirigidos: `A-A`, `A-B`, `A-C`, `B-B`, `B-C`, `C-C`. La captura refleja cada valor automáticamente, por lo que no se generan asimetrías desde esta modalidad de consola.
+
+La historia se cubre para la matriz binaria actual, con la decisión de rechazar lazos después de informarlos. En la parte 3 se adaptarán estas validaciones a los pesos; no se considera terminado el soporte ponderado.
+
+### Pruebas de la parte 2
+
+```powershell
+g++ -std=c++17 -Wall -Wextra -pedantic algoritmo.cpp -o algoritmo.exe
+python pruebas/probar_hu02.py .\algoritmo.exe
+python pruebas/probar_hu04.py .\algoritmo.exe
+g++ -std=c++17 -Wall -Wextra -pedantic -D_GLIBCXX_ASSERTIONS pruebas/validar_matriz.cpp -o prueba_matriz.exe
+.\prueba_matriz.exe
+```
+
+- HU-02 conserva sus casos, adaptados a las nuevas preguntas de la diagonal.
+- HU-04 prueba captura, corrección de lazos, simetría automática, dirección y cierre de entrada durante una corrección.
+- Las pruebas C++ llaman al validador real con 16 casos: matrices vacías, tamaños inválidos, nombres insuficientes, filas vacías/cortas/largas, valores fuera de rango, lazos, asimetría y ejemplos válidos. También comprueban que el mensaje de un error anterior se limpie al validar correctamente.
+- La unidad C++ se compila por separado porque incluye el programa con su `main` renombrado dentro de esa prueba. No compilar todos los `.cpp` juntos.
+
+Verificación: revisión estática y de diferencias; sintaxis de los scripts Python comprobada. Las pruebas del ejecutable y las 16 pruebas C++ quedan pendientes de compilador; no se reportan como aprobadas.
+
+### Commit sugerido para la parte 2
+
+```powershell
+git diff --check
+git add algoritmo.cpp PLAN_LAB3.md PLAN_INCREMENTAL.md EXPLICACION_LAB3.md pruebas/probar_hu02.py pruebas/probar_hu04.py pruebas/validar_matriz.cpp
+git diff --cached --stat
+git commit -m "Implementar HU-04: validar matriz y detectar lazos"
+git push
+```
+
+El siguiente bloque será la parte 3: selección y representación de grafos ponderados.

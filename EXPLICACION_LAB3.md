@@ -1,6 +1,6 @@
 # Explicación completa - Laboratorio 3: Teoría de grafos
 
-Actualizado para la parte 1 (HU-02), el 7 de octubre de 2026. El seguimiento de las próximas entregas está en [PLAN_INCREMENTAL.md](PLAN_INCREMENTAL.md). La implementación de esta parte está lista para revisar; su compilación y ejecución siguen pendientes en un entorno con compilador C++.
+Actualizado hasta la parte 2 (HU-04 para grafos no ponderados), el 7 de octubre de 2026. El seguimiento de las próximas entregas está en [PLAN_INCREMENTAL.md](PLAN_INCREMENTAL.md). Las partes 1 y 2 están implementadas; su compilación y ejecución siguen pendientes en un entorno con compilador C++.
 
 ## 1. ¿Qué se desarrolló?
 
@@ -276,7 +276,7 @@ En un grafo dirigido se muestra:
 Existe la arista 'A' -> 'B'? (0/1):
 ```
 
-Solamente acepta `0` o `1`.
+Solamente acepta `0` o `1`. Si el origen y el destino son el mismo nodo, el valor `1` representa un lazo. El programa informa qué nodo tiene el lazo, explica que esta versión trabaja con grafos simples y vuelve a pedir esa celda hasta recibir `0`.
 
 ### `ingresarMatriz`
 
@@ -299,7 +299,7 @@ Existe A -> B
 Existe B -> A
 ```
 
-Las dos respuestas pueden ser diferentes.
+Las dos respuestas pueden ser diferentes. Se recorren todas las celdas por filas, incluida la diagonal. Para dos nodos, el orden es `A-A`, `A-B`, `B-A`, `B-B`.
 
 #### Grafo no dirigido
 
@@ -308,32 +308,48 @@ En un grafo no dirigido, `A -- B` es la misma arista que `B -- A`.
 El programa pregunta una sola vez y copia el resultado en las dos posiciones:
 
 ```cpp
-matriz[i][j] = valor;
-matriz[j][i] = valor;
+matriz[j][i] = matriz[i][j];
 ```
 
 Así se garantiza automáticamente que la matriz sea simétrica.
 
-La diagonal no se pregunta porque los lazos no están permitidos y sus valores permanecen en cero.
+Se pregunta también por la diagonal. En un grafo no dirigido se recorre el triángulo superior incluyéndola: para tres nodos, el orden es `A-A`, `A-B`, `A-C`, `B-B`, `B-C`, `C-C`. Los lazos se detectan, se informan y se rechazan; el usuario debe corregirlos a cero. Un error en esa celda no obliga a volver a ingresar los nombres ni las conexiones anteriores.
 
 ### `validarMatriz`
 
 ```cpp
 bool validarMatriz(
     const vector<vector<int>>& matriz,
-    TipoGrafo tipo
+    const vector<string>& nombres,
+    TipoGrafo tipo,
+    string& error
 );
 ```
 
 Comprueba que:
 
-- La matriz no esté vacía.
-- Sea cuadrada.
+- La matriz tenga de 2 a 26 filas.
+- La cantidad de filas coincida con la cantidad de nombres.
+- El tipo de grafo sea válido.
+- Todas las filas estén completas y la matriz sea cuadrada.
 - Todos los valores sean `0` o `1`.
 - La diagonal principal esté en cero.
 - Sea simétrica si el grafo es no dirigido.
 
-Aunque la entrada controlada ya evita muchos errores, esta segunda validación protege la integridad del grafo antes de utilizarlo.
+Primero revisa el tamaño de **todas** las filas, antes de consultar cualquier celda. Esto evita leer fuera de los límites de un vector si una fila posterior está incompleta. Después revisa valores, diagonal y simetría.
+
+Devuelve `true` si todo es correcto y deja `error` vacío. Si encuentra un problema, devuelve `false` y escribe una explicación en `error`, que se pasa por referencia. No imprime ni cambia la matriz: el `main` se encarga de mostrar el mensaje y pedir nuevamente la captura si falla la revisión final.
+
+Ejemplos de mensajes:
+
+```text
+La fila de 'B' tiene 0 valores; se esperaban 2.
+Valor invalido en ['A']['B']: 2. Solo se permite 0 o 1.
+Se detecto un lazo en el nodo 'A'. La diagonal debe ser 0 en un grafo simple.
+Inconsistencia: de 'A' a 'B' hay 1, pero de 'B' a 'A' hay 0. El grafo no dirigido debe ser simetrico.
+```
+
+La captura no dirigida mantiene la simetría automáticamente; la comprobación adicional permite rechazar una matriz inconsistente recibida de otra fuente en el futuro. Las pruebas unitarias construyen esas matrices inválidas directamente para verificarlo.
 
 ### `mostrarResumen`
 
@@ -646,7 +662,7 @@ Presenta las operaciones disponibles:
 1. Solicita los datos básicos.
 2. Crea la matriz llena de ceros.
 3. Ingresa las conexiones.
-4. Valida la matriz.
+4. Valida la matriz y muestra el motivo si hace falta volver a capturarla.
 5. Muestra la información inicial.
 6. Mantiene activo el menú hasta seleccionar `0`.
 
@@ -714,9 +730,12 @@ Nodo 1: A
 Nodo 2: B
 Nodo 3: C
 Tipo: 1
+A -- A: 0
 A -- B: 1
 A -- C: 1
+B -- B: 0
 B -- C: 1
+C -- C: 0
 ```
 
 ### Matriz esperada
@@ -874,7 +893,17 @@ Significado de las opciones:
 
 ## 11. Casos de prueba recomendados
 
-La parte 1 incluye `pruebas/probar_hu02.py`. Tras compilar, ejecutar `python pruebas/probar_hu02.py .\algoritmo.exe`. Usa Python estándar para probar el ejecutable en directorios temporales. Esto no implementa todavía la interfaz Python de HU-06.
+La parte 1 incluye `pruebas/probar_hu02.py`, actualizado al ingreso de la diagonal. La parte 2 añade `pruebas/probar_hu04.py`, para probar correcciones de lazos y entradas inválidas, y `pruebas/validar_matriz.cpp`, con 16 casos directos de validación. Los scripts Python usan solo la biblioteca estándar y ejecutan la aplicación real en directorios temporales; todavía no son la interfaz gráfica de HU-06.
+
+```powershell
+g++ -std=c++17 -Wall -Wextra -pedantic algoritmo.cpp -o algoritmo.exe
+python pruebas/probar_hu02.py .\algoritmo.exe
+python pruebas/probar_hu04.py .\algoritmo.exe
+g++ -std=c++17 -Wall -Wextra -pedantic -D_GLIBCXX_ASSERTIONS pruebas/validar_matriz.cpp -o prueba_matriz.exe
+.\prueba_matriz.exe
+```
+
+Compilar cada archivo C++ por separado. El archivo de pruebas incluye `algoritmo.cpp` y cambia el nombre de su `main` solo durante esa compilación, para probar la función verdadera sin duplicar su implementación. `-D_GLIBCXX_ASSERTIONS` activa comprobaciones adicionales al usar GCC/libstdc++ y ayuda a detectar accesos fuera de rango.
 
 Las pruebas funcionales no se han ejecutado en este entorno por falta de compilador. No confundir los resultados esperados de abajo con resultados ya observados.
 
@@ -891,6 +920,7 @@ Intentar ingresar:
 Los símbolos imprimibles sí son nombres válidos. Continuar probando:
 
 - Un valor diferente de `0` o `1` para una conexión.
+- `1` en la diagonal; debe informar el lazo y volver a pedir esa celda.
 - Una opción del menú fuera del rango.
 
 El programa debe mostrar un mensaje y volver a solicitar el dato.
@@ -1107,6 +1137,8 @@ PLAN_LAB3.md           Plan y etapas de desarrollo.
 EXPLICACION_LAB3.md    Explicación completa del programa.
 PLAN_INCREMENTAL.md   Entregas por historia de usuario.
 pruebas/probar_hu02.py Pruebas del ejecutable para la parte 1.
+pruebas/probar_hu04.py Pruebas de captura y corrección de lazos.
+pruebas/validar_matriz.cpp Pruebas directas de integridad de la matriz.
 algoritmo_previo.cpp   Respaldo de la versión anterior.
 ```
 
@@ -1128,7 +1160,7 @@ git status
 Agregar únicamente los archivos que realmente se quieran publicar:
 
 ```powershell
-git add algoritmo.cpp PLAN_LAB3.md EXPLICACION_LAB3.md PLAN_INCREMENTAL.md pruebas/probar_hu02.py
+git add algoritmo.cpp PLAN_LAB3.md EXPLICACION_LAB3.md PLAN_INCREMENTAL.md pruebas/probar_hu02.py pruebas/probar_hu04.py pruebas/validar_matriz.cpp
 ```
 
 El archivo `algoritmo_previo.cpp` es un respaldo. Se puede conservar localmente o incluirlo solamente si el equipo considera útil mostrar la evolución. No es necesario para ejecutar la versión final.
@@ -1136,7 +1168,7 @@ El archivo `algoritmo_previo.cpp` es un respaldo. Se puede conservar localmente 
 Crear el commit:
 
 ```powershell
-git commit -m "Implementar HU-02: vertices personalizados y minimo de dos nodos"
+git commit -m "Implementar HU-04: validar matriz y detectar lazos"
 ```
 
 Finalmente:

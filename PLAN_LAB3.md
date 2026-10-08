@@ -1,6 +1,6 @@
 # Plan de desarrollo - Laboratorio 3: Teoría de grafos
 
-Este es el plan de la base inicial, actualizado en nombres de nodos para HU-02. Las ampliaciones exigidas por las historias de usuario y el orden de los próximos commits están en [PLAN_INCREMENTAL.md](PLAN_INCREMENTAL.md). Que una función aparezca implementada aquí no significa que cumpla todos los criterios de las historias nuevas.
+Este es el plan de la base inicial, actualizado en nombres de nodos para HU-02 y validaciones binarias para HU-04. Las ampliaciones exigidas por las historias de usuario y el orden de los próximos commits están en [PLAN_INCREMENTAL.md](PLAN_INCREMENTAL.md). Que una función aparezca implementada aquí no significa que cumpla todos los criterios de las historias nuevas.
 
 ## 1. Objetivo
 
@@ -92,9 +92,9 @@ El `enum` es preferible a usar números mágicos como `1` y `2` después de leer
 
 La matriz se ingresará celda por celda, aceptando únicamente `0` o `1`.
 
-Para un grafo dirigido se pedirán todas las posiciones, excepto la diagonal, que permanecerá en cero.
+Para un grafo dirigido se piden todas las posiciones, incluida la diagonal. Si se escribe `1` en la diagonal, se informa el lazo y se solicita corregir esa celda a `0`, porque se conserva el alcance de grafos simples.
 
-Para un grafo no dirigido se puede pedir solamente la mitad superior de la matriz y copiar automáticamente cada valor:
+Para un grafo no dirigido se pide solamente la mitad superior de la matriz, incluida la diagonal, y se copia automáticamente cada valor en su posición simétrica:
 
 ```cpp
 matriz[i][j] = valor;
@@ -113,7 +113,8 @@ void pedirNombresNodos(vector<string>& nombres, int cantidad);
 TipoGrafo pedirTipoGrafo();
 int pedirValorAdyacencia(const string& origen, const string& destino, TipoGrafo tipo);
 void ingresarMatriz(vector<vector<int>>& matriz, const vector<string>& nombres, TipoGrafo tipo);
-bool validarMatriz(const vector<vector<int>>& matriz, TipoGrafo tipo);
+bool validarMatriz(const vector<vector<int>>& matriz, const vector<string>& nombres,
+                   TipoGrafo tipo, string& error);
 ```
 
 Las validaciones mínimas serán:
@@ -125,6 +126,8 @@ Las validaciones mínimas serán:
 - Valores de matriz limitados a `0` y `1`.
 - Diagonal principal igual a cero.
 - Simetría para grafos no dirigidos.
+
+La validación comprueba todos los tamaños antes de acceder a celdas. Si algo falla, devuelve una explicación que identifica la fila, celda, nodo o par de nodos involucrado. La captura permite corregir los datos; los lazos se informan y rechazan.
 
 La entrada se recibe con `getline` y se analiza con `stringstream`. Si se cierra la entrada, se finaliza con un aviso y código 1.
 
