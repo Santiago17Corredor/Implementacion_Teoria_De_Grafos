@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -16,36 +17,45 @@ enum class TipoGrafo {
     Dirigido = 2
 };
 
-int leerEnteroEnRango(const string& mensaje, int minimo, int maximo) {
+string leerLinea(const string& mensaje) {
+    cout << mensaje;
     string linea;
+
+    if (!getline(cin, linea)) {
+        cerr << "\nEntrada finalizada. Programa cerrado.\n";
+        exit(EXIT_FAILURE);
+    }
+
+    return linea;
+}
+
+int leerEnteroEnRango(const string& mensaje, int minimo, int maximo,
+                     const string& mensajeMinimo = "") {
     int valor;
     char sobrante;
 
     while (true) {
-        cout << mensaje;
-        getline(cin, linea);
+        string linea = leerLinea(mensaje);
         stringstream entrada(linea);
 
-        if (entrada >> valor && !(entrada >> sobrante) &&
-            valor >= minimo && valor <= maximo) {
-            return valor;
+        if (entrada >> valor && !(entrada >> sobrante)) {
+            if (valor >= minimo && valor <= maximo) {
+                return valor;
+            }
+
+            if (valor < minimo && !mensajeMinimo.empty()) {
+                cout << mensajeMinimo << '\n';
+                continue;
+            }
         }
 
         cout << "Ingrese un numero entre " << minimo << " y " << maximo << ".\n";
     }
 }
 
-char convertirAMayuscula(char letra) {
-    return static_cast<char>(toupper(static_cast<unsigned char>(letra)));
-}
-
-bool esLetraValida(char letra) {
-    return letra >= 'A' && letra <= 'Z';
-}
-
-bool letraRepetida(const vector<char>& nombres, char letra) {
-    for (char nombre : nombres) {
-        if (nombre == letra) {
+bool nombreRepetido(const vector<string>& nombres, const string& nombre) {
+    for (const string& registrado : nombres) {
+        if (registrado == nombre) {
             return true;
         }
     }
@@ -53,45 +63,54 @@ bool letraRepetida(const vector<char>& nombres, char letra) {
     return false;
 }
 
-char pedirLetra(const string& mensaje) {
-    string linea;
-    string valor;
-    string sobrante;
-
+string pedirNombreNodo(const string& mensaje) {
     while (true) {
-        cout << mensaje;
-        getline(cin, linea);
-        stringstream entrada(linea);
+        string nombre = leerLinea(mensaje);
+        size_t inicio = nombre.find_first_not_of(" \t\r");
 
-        if (entrada >> valor && !(entrada >> sobrante) && valor.size() == 1) {
-            char letra = convertirAMayuscula(valor[0]);
+        if (inicio == string::npos) {
+            cout << "El nombre del nodo no puede estar vacio.\n";
+            continue;
+        }
 
-            if (esLetraValida(letra)) {
-                return letra;
+        size_t fin = nombre.find_last_not_of(" \t\r");
+        nombre = nombre.substr(inicio, fin - inicio + 1);
+        bool tieneControl = false;
+
+        for (unsigned char caracter : nombre) {
+            if (iscntrl(caracter)) {
+                tieneControl = true;
+                break;
             }
         }
 
-        cout << "Ingrese una sola letra entre A y Z.\n";
+        if (!tieneControl) {
+            return nombre;
+        }
+
+        cout << "El nombre no puede contener caracteres de control.\n";
     }
 }
 
 int pedirCantidadNodos() {
-    return leerEnteroEnRango("Ingrese la cantidad de nodos (1 a 26): ", 1, 26);
+    return leerEnteroEnRango("Ingrese la cantidad de nodos (2 a 26): ", 2, 26,
+        "El grafo requiere al menos 2 nodos para estructurar la matriz de adyacencia");
 }
 
-void pedirNombresNodos(vector<char>& nombres, int cantidad) {
-    cout << "\nAsigne una letra diferente a cada nodo.\n";
+void pedirNombresNodos(vector<string>& nombres, int cantidad) {
+    cout << "\nAsigne un nombre diferente a cada nodo (un nombre por linea).\n";
+    cout << "Se distinguen mayusculas y minusculas.\n";
 
     for (int i = 0; i < cantidad; i++) {
         while (true) {
-            char letra = pedirLetra("Nombre del nodo " + to_string(i + 1) + ": ");
+            string nombre = pedirNombreNodo("Nombre del nodo " + to_string(i + 1) + ": ");
 
-            if (!letraRepetida(nombres, letra)) {
-                nombres.push_back(letra);
+            if (!nombreRepetido(nombres, nombre)) {
+                nombres.push_back(nombre);
                 break;
             }
 
-            cout << "La letra ya pertenece a otro nodo.\n";
+            cout << "El nombre ya pertenece a otro nodo. Ingrese uno diferente.\n";
         }
     }
 }
@@ -105,16 +124,16 @@ TipoGrafo pedirTipoGrafo() {
     return static_cast<TipoGrafo>(opcion);
 }
 
-int pedirValorAdyacencia(char origen, char destino, TipoGrafo tipo) {
+int pedirValorAdyacencia(const string& origen, const string& destino, TipoGrafo tipo) {
     string conector = tipo == TipoGrafo::Dirigido ? " -> " : " -- ";
-    string mensaje = "Existe la arista " + string(1, origen) + conector +
-                     string(1, destino) + "? (0/1): ";
+    string mensaje = "Existe la arista '" + origen + "'" + conector +
+                     "'" + destino + "'? (0/1): ";
 
     return leerEnteroEnRango(mensaje, 0, 1);
 }
 
 void ingresarMatriz(vector<vector<int>>& matriz,
-                    const vector<char>& nombres,
+                    const vector<string>& nombres,
                     TipoGrafo tipo) {
     int cantidad = static_cast<int>(matriz.size());
     cout << "\nIngrese las conexiones del grafo.\n";
@@ -165,7 +184,7 @@ bool validarMatriz(const vector<vector<int>>& matriz, TipoGrafo tipo) {
     return true;
 }
 
-void mostrarResumen(const vector<char>& nombres, TipoGrafo tipo) {
+void mostrarResumen(const vector<string>& nombres, TipoGrafo tipo) {
     cout << "\nResumen del grafo\n";
     cout << "Cantidad de nodos: " << nombres.size() << '\n';
     cout << "Tipo: "
@@ -174,20 +193,26 @@ void mostrarResumen(const vector<char>& nombres, TipoGrafo tipo) {
 }
 
 void imprimirMatriz(const vector<vector<int>>& matriz,
-                    const vector<char>& nombres) {
-    cout << "\nMatriz de adyacencia:\n    ";
+                    const vector<string>& nombres) {
+    int ancho = 3;
 
-    for (char nombre : nombres) {
-        cout << setw(3) << nombre;
+    for (const string& nombre : nombres) {
+        ancho = max(ancho, static_cast<int>(nombre.size()) + 2);
+    }
+
+    cout << "\nMatriz de adyacencia:\n" << setw(ancho) << "";
+
+    for (const string& nombre : nombres) {
+        cout << setw(ancho) << nombre;
     }
 
     cout << '\n';
 
     for (int i = 0; i < static_cast<int>(matriz.size()); i++) {
-        cout << setw(3) << nombres[i] << ' ';
+        cout << setw(ancho) << nombres[i];
 
         for (int valor : matriz[i]) {
-            cout << setw(3) << valor;
+            cout << setw(ancho) << valor;
         }
 
         cout << '\n';
@@ -195,7 +220,7 @@ void imprimirMatriz(const vector<vector<int>>& matriz,
 }
 
 void mostrarRepresentacionMatematica(const vector<vector<int>>& matriz,
-                                     const vector<char>& nombres,
+                                     const vector<string>& nombres,
                                      TipoGrafo tipo) {
     cout << "\nV = {";
 
@@ -203,7 +228,7 @@ void mostrarRepresentacionMatematica(const vector<vector<int>>& matriz,
         if (i > 0) {
             cout << ", ";
         }
-        cout << nombres[i];
+        cout << quoted(nombres[i]);
     }
 
     cout << "}\n";
@@ -223,9 +248,9 @@ void mostrarRepresentacionMatematica(const vector<vector<int>>& matriz,
             }
 
             if (tipo == TipoGrafo::Dirigido) {
-                cout << '<' << nombres[i] << ',' << nombres[j] << '>';
+                cout << '<' << quoted(nombres[i]) << ',' << quoted(nombres[j]) << '>';
             } else {
-                cout << '{' << nombres[i] << ',' << nombres[j] << '}';
+                cout << '{' << quoted(nombres[i]) << ',' << quoted(nombres[j]) << '}';
             }
 
             primera = false;
@@ -235,7 +260,7 @@ void mostrarRepresentacionMatematica(const vector<vector<int>>& matriz,
     cout << "}\n";
 }
 
-int buscarIndiceNodo(const vector<char>& nombres, char nombre) {
+int buscarIndiceNodo(const vector<string>& nombres, const string& nombre) {
     for (int i = 0; i < static_cast<int>(nombres.size()); i++) {
         if (nombres[i] == nombre) {
             return i;
@@ -245,9 +270,9 @@ int buscarIndiceNodo(const vector<char>& nombres, char nombre) {
     return -1;
 }
 
-int pedirNodoExistente(const vector<char>& nombres, const string& mensaje) {
+int pedirNodoExistente(const vector<string>& nombres, const string& mensaje) {
     while (true) {
-        char nombre = pedirLetra(mensaje);
+        string nombre = pedirNombreNodo(mensaje);
         int indice = buscarIndiceNodo(nombres, nombre);
 
         if (indice != -1) {
@@ -258,7 +283,7 @@ int pedirNodoExistente(const vector<char>& nombres, const string& mensaje) {
     }
 }
 
-void imprimirNodosEncontrados(const vector<char>& nombres,
+void imprimirNodosEncontrados(const vector<string>& nombres,
                               const vector<int>& indices) {
     if (indices.empty()) {
         cout << "Ninguno";
@@ -275,7 +300,7 @@ void imprimirNodosEncontrados(const vector<char>& nombres,
 
 void mostrarAdyacentes(int indice,
                        const vector<vector<int>>& matriz,
-                       const vector<char>& nombres,
+                       const vector<string>& nombres,
                        TipoGrafo tipo) {
     vector<int> salientes;
     vector<int> entrantes;
@@ -304,7 +329,7 @@ void mostrarAdyacentes(int indice,
     cout << '\n';
 }
 
-vector<int> pedirSecuenciaNodos(const vector<char>& nombres) {
+vector<int> pedirSecuenciaNodos(const vector<string>& nombres) {
     int longitud = leerEnteroEnRango(
         "Cantidad de nodos de la secuencia (1 a 100): ", 1, 100);
     vector<int> secuencia;
@@ -408,7 +433,7 @@ void analizarSecuencia(const vector<int>& secuencia,
 }
 
 bool generarArchivoDOT(const vector<vector<int>>& matriz,
-                       const vector<char>& nombres,
+                       const vector<string>& nombres,
                        TipoGrafo tipo,
                        const string& nombreArchivo) {
     ofstream archivo(nombreArchivo);
@@ -422,8 +447,9 @@ bool generarArchivoDOT(const vector<vector<int>>& matriz,
     archivo << "    rankdir=LR;\n";
     archivo << "    node [shape=circle];\n";
 
-    for (char nombre : nombres) {
-        archivo << "    " << nombre << ";\n";
+    // El indice identifica al nodo; el nombre se escribe como una etiqueta escapada.
+    for (int i = 0; i < static_cast<int>(nombres.size()); i++) {
+        archivo << "    n" << i << " [label=" << quoted(nombres[i]) << "];\n";
     }
 
     string conector = dirigido ? " -> " : " -- ";
@@ -433,13 +459,14 @@ bool generarArchivoDOT(const vector<vector<int>>& matriz,
 
         for (int j = inicio; j < static_cast<int>(matriz.size()); j++) {
             if (matriz[i][j] == 1) {
-                archivo << "    " << nombres[i] << conector << nombres[j] << ";\n";
+                archivo << "    n" << i << conector << "n" << j << ";\n";
             }
         }
     }
 
     archivo << "}\n";
-    return true;
+    archivo.close();
+    return !archivo.fail();
 }
 
 void mostrarMenu() {
@@ -456,7 +483,7 @@ int main() {
     cout << "=== Laboratorio 3: Teoria de grafos ===\n";
 
     int cantidadNodos = pedirCantidadNodos();
-    vector<char> nombresNodos;
+    vector<string> nombresNodos;
     pedirNombresNodos(nombresNodos, cantidadNodos);
 
     TipoGrafo tipo = pedirTipoGrafo();

@@ -1,13 +1,15 @@
 # Explicación completa - Laboratorio 3: Teoría de grafos
 
+Actualizado para la parte 1 (HU-02), el 7 de octubre de 2026. El seguimiento de las próximas entregas está en [PLAN_INCREMENTAL.md](PLAN_INCREMENTAL.md). La implementación de esta parte está lista para revisar; su compilación y ejecución siguen pendientes en un entorno con compilador C++.
+
 ## 1. ¿Qué se desarrolló?
 
 Se desarrolló un programa de consola en C++ que permite crear y analizar un grafo simple mediante una matriz de adyacencia.
 
 El programa permite:
 
-- Definir entre 1 y 26 nodos.
-- Asignar una letra diferente a cada nodo.
+- Definir entre 2 y 26 nodos.
+- Asignar un nombre diferente a cada nodo: letras, números, palabras o símbolos.
 - Elegir entre un grafo dirigido y uno no dirigido.
 - Ingresar las conexiones del grafo.
 - Construir y mostrar su matriz de adyacencia.
@@ -45,11 +47,11 @@ El programa trabaja con grafos simples y no ponderados:
 - La diagonal principal de la matriz permanece en cero.
 - Las aristas no tienen costos ni pesos.
 
-Los pesos no se incluyen porque pertenecen al trabajo posterior de rutas más cortas.
+Los pesos todavía no se incluyen. Las historias HU-01, HU-03 y HU-05 los requieren: se incorporarán en la parte 3 del plan incremental, antes de implementar rutas mínimas.
 
 ### Límite de 26 nodos
 
-Cada nodo se identifica mediante una letra entre `A` y `Z`. Por esa razón, el límite máximo es de 26 nodos.
+Los nombres ya no están limitados al abecedario. Se conserva por ahora el máximo acordado de 26 nodos para la captura manual; el mínimo exigido por HU-02 es de dos.
 
 Este límite también es razonable para una aplicación de consola. Una matriz de 26 nodos contiene 676 posiciones y una gráfica de ese tamaño puede ser difícil de leer.
 
@@ -58,10 +60,10 @@ Este límite también es razonable para una aplicación de consola. Una matriz d
 ### Vector de nombres
 
 ```cpp
-vector<char> nombresNodos;
+vector<string> nombresNodos;
 ```
 
-Guarda la letra asignada a cada nodo.
+Guarda el nombre completo de cada nodo, por ejemplo `a`, `v1`, `15`, `@` o `Nodo central`.
 
 Por ejemplo:
 
@@ -70,7 +72,7 @@ Por ejemplo:
 Nodo:    A  B  C  D
 ```
 
-El índice permite relacionar cada letra con una fila y una columna de la matriz.
+El índice permite relacionar cada nombre con una fila y una columna de la matriz.
 
 ### Matriz de adyacencia
 
@@ -157,7 +159,8 @@ La matriz se crea una sola vez. Después, el menú permite realizar varias consu
 ### `leerEnteroEnRango`
 
 ```cpp
-int leerEnteroEnRango(const string& mensaje, int minimo, int maximo);
+int leerEnteroEnRango(const string& mensaje, int minimo, int maximo,
+                     const string& mensajeMinimo = "");
 ```
 
 Solicita un número entero y comprueba que esté dentro de un rango.
@@ -172,7 +175,7 @@ hola
 100
 ```
 
-El programa continúa preguntando hasta recibir un único entero válido.
+El programa continúa preguntando hasta recibir un único entero válido. `mensajeMinimo` permite explicar específicamente por qué se rechaza una cantidad menor que dos. Si se acaba la entrada, `leerLinea` cierra el programa con código 1 para evitar un ciclo infinito.
 
 Esta función se reutiliza para:
 
@@ -182,50 +185,43 @@ Esta función se reutiliza para:
 - Opciones del menú.
 - Longitud de una secuencia.
 
-### `convertirAMayuscula`
+### `leerLinea`
 
 ```cpp
-char convertirAMayuscula(char letra);
+string leerLinea(const string& mensaje);
 ```
 
-Convierte una letra minúscula en mayúscula. Gracias a esto, `a` y `A` se interpretan como el mismo nodo.
+Presenta un mensaje y recibe una línea completa, incluidos los espacios internos. Si falla la lectura o se cierra la entrada, informa el cierre y termina con código 1 mediante `exit(EXIT_FAILURE)`. Se centraliza esta comprobación para que las funciones que preguntan datos no se queden repitiendo mensajes.
 
-### `esLetraValida`
+### `nombreRepetido`
 
 ```cpp
-bool esLetraValida(char letra);
+bool nombreRepetido(const vector<string>& nombres, const string& nombre);
 ```
 
-Comprueba que el carácter esté entre `A` y `Z`.
+Compara el nombre con los ya registrados. La comparación es exacta: `A` y `a` son identificadores diferentes. Un duplicado se rechaza y se solicita otro nombre.
 
-Rechaza números, símbolos y otros caracteres.
-
-### `letraRepetida`
+### `pedirNombreNodo`
 
 ```cpp
-bool letraRepetida(const vector<char>& nombres, char letra);
+string pedirNombreNodo(const string& mensaje);
 ```
 
-Recorre los nombres que ya fueron registrados y determina si la letra está repetida.
-
-No se permiten dos nodos con el mismo nombre porque después no sería posible distinguirlos al consultar la matriz.
-
-### `pedirLetra`
-
-```cpp
-char pedirLetra(const string& mensaje);
-```
-
-Solicita exactamente una letra, la convierte a mayúscula y valida que esté entre `A` y `Z`.
+Recibe un nombre por línea. Quita espacios, tabulaciones y retornos de carro de los extremos mediante `find_first_not_of`, `find_last_not_of` y `substr`. Rechaza nombres vacíos y caracteres de control internos; conserva palabras, números, símbolos y espacios internos.
 
 Ejemplos:
 
 ```text
-a     -> válido; se convierte en A
-AB    -> inválido
-7     -> inválido
-A B   -> inválido
+a             -> válido; conserva la minúscula
+AB            -> válido
+15            -> válido
+Nodo central  -> válido; es un solo nombre
+@             -> válido
+  v1          -> se guarda como v1
+línea vacía   -> inválido
 ```
+
+La modalidad es un nombre por línea: `A,B` representa un solo identificador, no dos nodos. Para consultarlo hay que escribir su nombre exacto; los espacios de los extremos se vuelven a quitar.
 
 ### `pedirCantidadNodos`
 
@@ -233,15 +229,15 @@ A B   -> inválido
 int pedirCantidadNodos();
 ```
 
-Utiliza `leerEnteroEnRango` para aceptar cantidades entre 1 y 26.
+Utiliza `leerEnteroEnRango` para aceptar cantidades entre 2 y 26.
 
 ### `pedirNombresNodos`
 
 ```cpp
-void pedirNombresNodos(vector<char>& nombres, int cantidad);
+void pedirNombresNodos(vector<string>& nombres, int cantidad);
 ```
 
-Solicita el nombre de cada nodo y evita letras repetidas.
+Solicita el nombre de cada nodo y evita nombres repetidos después de quitar los espacios de los extremos.
 
 El vector se pasa por referencia porque la función debe modificarlo y agregar los nombres ingresados.
 
@@ -263,7 +259,7 @@ Luego transforma la opción numérica en un valor de `TipoGrafo`.
 ### `pedirValorAdyacencia`
 
 ```cpp
-int pedirValorAdyacencia(char origen, char destino, TipoGrafo tipo);
+int pedirValorAdyacencia(const string& origen, const string& destino, TipoGrafo tipo);
 ```
 
 Pregunta si existe una conexión entre dos nodos.
@@ -271,13 +267,13 @@ Pregunta si existe una conexión entre dos nodos.
 En un grafo no dirigido se muestra:
 
 ```text
-Existe la arista A -- B? (0/1):
+Existe la arista 'A' -- 'B'? (0/1):
 ```
 
 En un grafo dirigido se muestra:
 
 ```text
-Existe la arista A -> B? (0/1):
+Existe la arista 'A' -> 'B'? (0/1):
 ```
 
 Solamente acepta `0` o `1`.
@@ -287,7 +283,7 @@ Solamente acepta `0` o `1`.
 ```cpp
 void ingresarMatriz(
     vector<vector<int>>& matriz,
-    const vector<char>& nombres,
+    const vector<string>& nombres,
     TipoGrafo tipo
 );
 ```
@@ -343,7 +339,7 @@ Aunque la entrada controlada ya evita muchos errores, esta segunda validación p
 
 ```cpp
 void mostrarResumen(
-    const vector<char>& nombres,
+    const vector<string>& nombres,
     TipoGrafo tipo
 );
 ```
@@ -355,20 +351,20 @@ Muestra la cantidad de nodos y si el grafo es dirigido o no dirigido.
 ```cpp
 void imprimirMatriz(
     const vector<vector<int>>& matriz,
-    const vector<char>& nombres
+    const vector<string>& nombres
 );
 ```
 
 Imprime los nombres de los nodos como encabezados de filas y columnas.
 
-`setw` se utiliza para mantener los valores alineados.
+`setw` usa un ancho calculado a partir del nombre más largo más dos espacios. Así caben nombres compuestos. El ancho se mide en bytes: algunos caracteres Unicode pueden verse desalineados según la terminal y su fuente.
 
 ### `mostrarRepresentacionMatematica`
 
 ```cpp
 void mostrarRepresentacionMatematica(
     const vector<vector<int>>& matriz,
-    const vector<char>& nombres,
+    const vector<string>& nombres,
     TipoGrafo tipo
 );
 ```
@@ -376,21 +372,23 @@ void mostrarRepresentacionMatematica(
 Muestra el conjunto de vértices:
 
 ```text
-V = {A, B, C}
+V = {"A", "B", "C"}
 ```
 
 Para un grafo no dirigido muestra el conjunto de aristas:
 
 ```text
-E = {{A,B}, {A,C}}
+E = {{"A","B"}, {"A","C"}}
 ```
+
+Los nombres se escriben con `quoted` para distinguir nombres que contengan comas o comillas.
 
 Solamente recorre la parte superior de la matriz para no mostrar dos veces una arista como `A-B` y `B-A`.
 
 Para un grafo dirigido muestra el conjunto de arcos:
 
 ```text
-A = {<A,B>, <C,A>}
+A = {<"A","B">, <"C","A">}
 ```
 
 En este caso sí importa el orden de los nodos.
@@ -398,10 +396,10 @@ En este caso sí importa el orden de los nodos.
 ### `buscarIndiceNodo`
 
 ```cpp
-int buscarIndiceNodo(const vector<char>& nombres, char nombre);
+int buscarIndiceNodo(const vector<string>& nombres, const string& nombre);
 ```
 
-Busca una letra dentro del vector de nombres.
+Busca el nombre completo dentro del vector de nombres, respetando mayúsculas y minúsculas.
 
 Devuelve:
 
@@ -412,12 +410,12 @@ Devuelve:
 
 ```cpp
 int pedirNodoExistente(
-    const vector<char>& nombres,
+    const vector<string>& nombres,
     const string& mensaje
 );
 ```
 
-Solicita una letra y utiliza `buscarIndiceNodo` para comprobar que corresponda a un nodo registrado.
+Solicita un nombre y utiliza `buscarIndiceNodo` para comprobar que corresponda a un nodo registrado.
 
 Si el nodo no existe, vuelve a pedirlo.
 
@@ -425,12 +423,12 @@ Si el nodo no existe, vuelve a pedirlo.
 
 ```cpp
 void imprimirNodosEncontrados(
-    const vector<char>& nombres,
+    const vector<string>& nombres,
     const vector<int>& indices
 );
 ```
 
-Recibe los índices encontrados durante una consulta y muestra las letras correspondientes.
+Recibe los índices encontrados durante una consulta y muestra los nombres correspondientes.
 
 Si el vector está vacío, imprime `Ninguno`.
 
@@ -440,7 +438,7 @@ Si el vector está vacío, imprime `Ninguno`.
 void mostrarAdyacentes(
     int indice,
     const vector<vector<int>>& matriz,
-    const vector<char>& nombres,
+    const vector<string>& nombres,
     TipoGrafo tipo
 );
 ```
@@ -467,7 +465,7 @@ matriz[j][indice]
 ### `pedirSecuenciaNodos`
 
 ```cpp
-vector<int> pedirSecuenciaNodos(const vector<char>& nombres);
+vector<int> pedirSecuenciaNodos(const vector<string>& nombres);
 ```
 
 Solicita la longitud de una secuencia y después pide cada nodo.
@@ -600,7 +598,7 @@ La secuencia no es un camino.
 ```cpp
 bool generarArchivoDOT(
     const vector<vector<int>>& matriz,
-    const vector<char>& nombres,
+    const vector<string>& nombres,
     TipoGrafo tipo,
     const string& nombreArchivo
 );
@@ -614,15 +612,17 @@ Para un grafo no dirigido genera algo similar a:
 graph G {
     rankdir=LR;
     node [shape=circle];
-    A;
-    B;
-    C;
-    A -- B;
-    A -- C;
+    n0 [label="A"];
+    n1 [label="B"];
+    n2 [label="C"];
+    n0 -- n1;
+    n0 -- n2;
 }
 ```
 
 Para un grafo dirigido utiliza `digraph` y el conector `->`.
+
+Los identificadores internos `n0`, `n1`, etc. evitan conflictos con palabras reservadas o símbolos en los nombres. `quoted` escribe las etiquetas entre comillas y escapa comillas y barras invertidas. Al cerrar el archivo se comprueba si ocurrió un error de escritura.
 
 Los nodos se declaran aunque estén aislados. Esto garantiza que también aparezcan en la gráfica.
 
@@ -731,8 +731,8 @@ B -- C: 1
 ### Representación matemática esperada
 
 ```text
-V = {A, B, C}
-E = {{A,B}, {A,C}, {B,C}}
+V = {"A", "B", "C"}
+E = {{"A","B"}, {"A","C"}, {"B","C"}}
 ```
 
 ### Consulta de adyacentes
@@ -801,8 +801,8 @@ C -> A
 ### Representación matemática
 
 ```text
-V = {A, B, C}
-A = {<A,B>, <B,C>, <C,A>}
+V = {"A", "B", "C"}
+A = {<"A","B">, <"B","C">, <"C","A">}
 ```
 
 ### Consulta del nodo A
@@ -874,6 +874,10 @@ Significado de las opciones:
 
 ## 11. Casos de prueba recomendados
 
+La parte 1 incluye `pruebas/probar_hu02.py`. Tras compilar, ejecutar `python pruebas/probar_hu02.py .\algoritmo.exe`. Usa Python estándar para probar el ejecutable en directorios temporales. Esto no implementa todavía la interfaz Python de HU-06.
+
+Las pruebas funcionales no se han ejecutado en este entorno por falta de compilador. No confundir los resultados esperados de abajo con resultados ya observados.
+
 ### Prueba 1: entradas inválidas
 
 Intentar ingresar:
@@ -881,8 +885,11 @@ Intentar ingresar:
 - Texto en la cantidad de nodos.
 - `0` nodos.
 - Más de 26 nodos.
-- Dos nombres iguales.
-- Un símbolo como nombre.
+- Dos nombres iguales, incluso si uno tiene espacios adicionales en los extremos.
+- Un nombre vacío o con caracteres de control internos.
+
+Los símbolos imprimibles sí son nombres válidos. Continuar probando:
+
 - Un valor diferente de `0` o `1` para una conexión.
 - Una opción del menú fuera del rango.
 
@@ -1030,9 +1037,9 @@ Porque permite representar grafos dirigidos y no dirigidos con poco código, y G
 
 ## 14. Limitaciones conocidas
 
-Estas limitaciones son intencionales para conservar el alcance del Laboratorio 3:
+Estas son las limitaciones de la versión actual. El plan incremental contempla ampliar pesos, búsqueda de caminos y visualización para cumplir las historias nuevas:
 
-- Solo se utilizan letras de `A` a `Z`.
+- Los nombres se ingresan uno por línea y distinguen mayúsculas de minúsculas.
 - El máximo es de 26 nodos.
 - No se permiten lazos.
 - No se permiten pesos.
@@ -1098,6 +1105,8 @@ El informe puede organizarse así:
 algoritmo.cpp          Programa actual del Laboratorio 3.
 PLAN_LAB3.md           Plan y etapas de desarrollo.
 EXPLICACION_LAB3.md    Explicación completa del programa.
+PLAN_INCREMENTAL.md   Entregas por historia de usuario.
+pruebas/probar_hu02.py Pruebas del ejecutable para la parte 1.
 algoritmo_previo.cpp   Respaldo de la versión anterior.
 ```
 
@@ -1119,7 +1128,7 @@ git status
 Agregar únicamente los archivos que realmente se quieran publicar:
 
 ```powershell
-git add algoritmo.cpp PLAN_LAB3.md EXPLICACION_LAB3.md
+git add algoritmo.cpp PLAN_LAB3.md EXPLICACION_LAB3.md PLAN_INCREMENTAL.md pruebas/probar_hu02.py
 ```
 
 El archivo `algoritmo_previo.cpp` es un respaldo. Se puede conservar localmente o incluirlo solamente si el equipo considera útil mostrar la evolución. No es necesario para ejecutar la versión final.
@@ -1127,7 +1136,7 @@ El archivo `algoritmo_previo.cpp` es un respaldo. Se puede conservar localmente 
 Crear el commit:
 
 ```powershell
-git commit -m "Implementar laboratorio 3 de teoria de grafos"
+git commit -m "Implementar HU-02: vertices personalizados y minimo de dos nodos"
 ```
 
 Finalmente:

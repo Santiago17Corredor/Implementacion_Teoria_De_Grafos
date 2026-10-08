@@ -1,5 +1,7 @@
 # Plan de desarrollo - Laboratorio 3: Teoría de grafos
 
+Este es el plan de la base inicial, actualizado en nombres de nodos para HU-02. Las ampliaciones exigidas por las historias de usuario y el orden de los próximos commits están en [PLAN_INCREMENTAL.md](PLAN_INCREMENTAL.md). Que una función aparezca implementada aquí no significa que cumpla todos los criterios de las historias nuevas.
+
 ## 1. Objetivo
 
 Desarrollar en C++ un programa de consola que permita construir y analizar un grafo mediante una matriz de adyacencia. El programa debe generar:
@@ -37,14 +39,14 @@ Principios para el código:
 - Parámetros constantes por referencia cuando no deban modificarse.
 - Comentarios solamente para decisiones que no sean evidentes.
 - Mensajes de consola breves y consistentes.
-- Límite máximo de 26 nodos, identificados con letras únicas.
+- Mínimo de 2 y máximo de 26 nodos, con nombres personalizados únicos.
 
 ## 3. Alcance funcional
 
 El programa tendrá el siguiente flujo:
 
 1. Solicitar la cantidad de nodos.
-2. Solicitar una letra única para cada nodo.
+2. Solicitar un nombre único por línea para cada nodo.
 3. Preguntar si el grafo es dirigido o no dirigido.
 4. Ingresar la matriz de adyacencia.
 5. Validar la integridad de la matriz.
@@ -64,14 +66,14 @@ La primera versión trabajará con grafos simples y no ponderados:
 - En un grafo no dirigido, la matriz debe ser simétrica.
 - En un grafo dirigido, la matriz no necesita ser simétrica.
 
-La opción actual de grafo "etiquetado" debe retirarse si no produce ningún comportamiento diferente. Los nombres de los nodos ya funcionan como etiquetas y los pesos pertenecen al alcance posterior, no al Laboratorio 3.
+La opción actual de grafo "etiquetado" debe retirarse si no produce ningún comportamiento diferente. La base inicial es no ponderada. Las nuevas HU-01, HU-03 y HU-05 también exigen pesos: se incorporarán en la parte 3 del plan incremental, antes de las rutas mínimas.
 
 ## 4. Estructuras de datos
 
 Se conservarán estructuras básicas de la biblioteca estándar:
 
 ```cpp
-vector<char> nombresNodos;
+vector<string> nombresNodos;
 vector<vector<int>> matrizAdyacencia;
 ```
 
@@ -107,36 +109,36 @@ Esto garantiza la simetría y evita pedir dos veces la misma arista. Al finaliza
 
 ```cpp
 int pedirCantidadNodos();
-void pedirNombresNodos(vector<char>& nombres, int cantidad);
+void pedirNombresNodos(vector<string>& nombres, int cantidad);
 TipoGrafo pedirTipoGrafo();
-int pedirValorBinario(char origen, char destino);
-void ingresarMatriz(vector<vector<int>>& matriz, TipoGrafo tipo);
+int pedirValorAdyacencia(const string& origen, const string& destino, TipoGrafo tipo);
+void ingresarMatriz(vector<vector<int>>& matriz, const vector<string>& nombres, TipoGrafo tipo);
 bool validarMatriz(const vector<vector<int>>& matriz, TipoGrafo tipo);
 ```
 
 Las validaciones mínimas serán:
 
-- Cantidad entre 1 y 26.
+- Cantidad entre 2 y 26.
 - Entradas numéricas válidas.
-- Nombres entre `A` y `Z`.
+- Nombres no vacíos: letras, números, palabras y símbolos imprimibles. Se distinguen mayúsculas de minúsculas.
 - Nombres no repetidos.
 - Valores de matriz limitados a `0` y `1`.
 - Diagonal principal igual a cero.
 - Simetría para grafos no dirigidos.
 
-Es importante limpiar `cin` cuando el usuario escriba texto en una entrada numérica; de lo contrario, el programa puede quedar atrapado en un ciclo.
+La entrada se recibe con `getline` y se analiza con `stringstream`. Si se cierra la entrada, se finaliza con un aviso y código 1.
 
 ### Presentación del grafo
 
 ```cpp
-void mostrarResumen(int cantidad, TipoGrafo tipo);
+void mostrarResumen(const vector<string>& nombres, TipoGrafo tipo);
 void imprimirMatriz(
     const vector<vector<int>>& matriz,
-    const vector<char>& nombres
+    const vector<string>& nombres
 );
 void mostrarRepresentacionMatematica(
     const vector<vector<int>>& matriz,
-    const vector<char>& nombres,
+    const vector<string>& nombres,
     TipoGrafo tipo
 );
 ```
@@ -153,11 +155,11 @@ En grafos no dirigidos cada arista se mostrará una sola vez. En grafos dirigido
 ### Nodos adyacentes
 
 ```cpp
-int buscarIndiceNodo(const vector<char>& nombres, char nombre);
+int buscarIndiceNodo(const vector<string>& nombres, const string& nombre);
 void mostrarAdyacentes(
     int indice,
     const vector<vector<int>>& matriz,
-    const vector<char>& nombres,
+    const vector<string>& nombres,
     TipoGrafo tipo
 );
 ```
@@ -172,18 +174,19 @@ Para grafos dirigidos conviene distinguir:
 Para mantener el código básico, el programa no buscará automáticamente todos los caminos. El usuario ingresará una secuencia de nodos y el programa comprobará si representa un camino válido.
 
 ```cpp
-vector<int> pedirSecuenciaNodos(const vector<char>& nombres);
+vector<int> pedirSecuenciaNodos(const vector<string>& nombres);
 bool esCamino(
     const vector<int>& secuencia,
     const vector<vector<int>>& matriz
 );
 bool esCiclo(
     const vector<int>& secuencia,
-    const vector<vector<int>>& matriz
+    const vector<vector<int>>& matriz,
+    TipoGrafo tipo
 );
 ```
 
-Una secuencia es camino cuando cada par consecutivo está conectado. Será ciclo cuando, además de ser camino, empiece y termine en el mismo nodo.
+Una secuencia es camino cuando cada par consecutivo está conectado. Para ser ciclo debe contener aristas y empezar y terminar en el mismo nodo; en grafos no dirigidos tampoco debe repetir aristas. La búsqueda automática de caminos y ciclos corresponde a las partes 5 y 6 del plan incremental.
 
 Ejemplos:
 
@@ -197,10 +200,11 @@ A B C A -> es un ciclo si también existe C-A.
 La opción más sencilla en C++ es generar un archivo `grafo.dot` compatible con Graphviz mediante `<fstream>`.
 
 ```cpp
-void generarArchivoDOT(
+bool generarArchivoDOT(
     const vector<vector<int>>& matriz,
-    const vector<char>& nombres,
-    TipoGrafo tipo
+    const vector<string>& nombres,
+    TipoGrafo tipo,
+    const string& nombreArchivo
 );
 ```
 
@@ -337,8 +341,8 @@ El nodo `C` debe aparecer en la matriz, en el conjunto de vértices y en la grá
 Probar:
 
 - Cantidad de nodos fuera del rango.
-- Letras repetidas.
-- Caracteres distintos de letras.
+- Nombres repetidos, incluidos duplicados con espacios en los extremos.
+- Nombres vacíos o con caracteres de control.
 - Texto en una entrada numérica.
 - Valores diferentes de `0` y `1`.
 - Nodos inexistentes dentro de una secuencia.
@@ -367,7 +371,7 @@ Para evitar mezclar actividades, en este laboratorio no se implementarán:
 - Bellman-Ford.
 - Rutas más cortas.
 - Comparaciones de eficiencia algorítmica.
-- Pesos negativos.
+- Algoritmos que calculan rutas mínimas con pesos negativos.
 - Detección de ciclos negativos.
 - Resaltado de una ruta mínima.
 
