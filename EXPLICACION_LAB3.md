@@ -1,6 +1,6 @@
 # Explicación completa - Laboratorio 3: Teoría de grafos
 
-Actualizado hasta la parte 2 (HU-04 para grafos no ponderados), el 7 de octubre de 2026. El seguimiento de las próximas entregas está en [PLAN_INCREMENTAL.md](PLAN_INCREMENTAL.md). Las partes 1 y 2 están implementadas; su compilación y ejecución siguen pendientes en un entorno con compilador C++.
+Actualizado hasta las partes 3 (pesos) y 4 (grados y aislamiento), el 7 de octubre de 2026. El seguimiento está en [PLAN_INCREMENTAL.md](PLAN_INCREMENTAL.md). El código de las partes 1 a 4 está implementado; su compilación y ejecución siguen pendientes en un entorno con compilador C++. No se considera completa HU-01 en lo relativo al renderizado Python, que se incorpora con HU-06.
 
 ## 1. ¿Qué se desarrolló?
 
@@ -11,12 +11,14 @@ El programa permite:
 - Definir entre 2 y 26 nodos.
 - Asignar un nombre diferente a cada nodo: letras, números, palabras o símbolos.
 - Elegir entre un grafo dirigido y uno no dirigido.
+- Elegir, de forma independiente, si las aristas tienen pesos.
 - Ingresar las conexiones del grafo.
 - Construir y mostrar su matriz de adyacencia.
 - Mostrar la representación matemática del grafo.
-- Consultar los nodos adyacentes.
+- Consultar los nodos adyacentes, sus grados y si el nodo está aislado.
 - Comprobar si una secuencia de nodos es un camino.
 - Comprobar si una secuencia forma un ciclo.
+- Sumar el costo de una secuencia válida si el grafo es ponderado.
 - Generar un archivo DOT para representar gráficamente el grafo con Graphviz.
 
 El programa implementa solamente la Guía 3. No incluye rutas más cortas, Dijkstra, Bellman-Ford ni requisitos de la Guía 4.
@@ -37,17 +39,18 @@ Este enfoque se eligió porque:
 
 Utilizar POO también sería válido, pero no es necesario para cumplir el objetivo de esta práctica.
 
-### Grafo simple y no ponderado
+### Sin lazos ni aristas paralelas; con o sin pesos
 
-El programa trabaja con grafos simples y no ponderados:
+Las dos elecciones son independientes: dirigido/no dirigido y ponderado/no ponderado. Por tanto, existen cuatro combinaciones.
 
-- `0` significa que no existe una conexión.
-- `1` significa que existe una conexión.
-- No se permiten lazos de un nodo consigo mismo.
-- La diagonal principal de la matriz permanece en cero.
-- Las aristas no tienen costos ni pesos.
+- Sin pesos: `0` significa ausencia y `1` significa conexión. Se escogió la alternativa binaria permitida por HU-03; no se reciben `T/F`.
+- Con pesos: `x` o `X` significa ausencia. Cualquier peso válido, **incluido cero**, significa que existe una conexión.
+- No se admiten lazos: la diagonal debe ingresarse como `0` sin pesos o `x` con pesos. Un peso cero en la diagonal ponderada también es un lazo y se rechaza explicando cómo corregirlo.
+- No se admiten aristas paralelas; cada par de nodos tiene una sola celda por dirección.
+- Los pesos se guardan como `double`, entre `-1000000000` y `1000000000`, inclusive. Admiten negativos, decimales con punto y notación científica, por ejemplo `-1.25e2`.
+- Se rechazan texto, valores no finitos (`nan`, `inf`), números fuera del rango y conversiones fuera del rango representable de `double`.
 
-Los pesos todavía no se incluyen. Las historias HU-01, HU-03 y HU-05 los requieren: se incorporarán en la parte 3 del plan incremental, antes de implementar rutas mínimas.
+El límite numérico es una decisión práctica de esta consola, no un requisito del docente. Con secuencias de hasta 100 nodos, sumar sus pesos no desborda `double`. Eso no elimina los redondeos propios de los decimales en coma flotante. La presentación utiliza hasta 15 cifras significativas; no es aritmética decimal exacta.
 
 ### Límite de 26 nodos
 
@@ -77,14 +80,19 @@ El índice permite relacionar cada nombre con una fila y una columna de la matri
 ### Matriz de adyacencia
 
 ```cpp
-vector<vector<int>> matrizAdyacencia;
+struct Conexion {
+    int existe = 0;
+    double peso = 0;
+};
+
+vector<vector<Conexion>> matrizAdyacencia;
 ```
 
-La matriz es cuadrada. Tiene el mismo número de filas y columnas que de nodos.
+La matriz sigue siendo cuadrada. Ahora cada celda agrupa dos datos: si hay conexión y cuánto cuesta. El `struct` no tiene métodos, herencia ni lógica: es un registro sencillo; el diseño continúa siendo procedural.
 
-Si `matriz[i][j]` contiene `1`, existe una conexión desde el nodo `i` hacia el nodo `j`.
+`matriz[i][j].existe` contiene `1` si hay conexión y `0` si no. Se conserva como entero para poder validar explícitamente que sea binario.
 
-Si contiene `0`, no existe esa conexión.
+`matriz[i][j].peso` guarda el costo. Una ausencia guarda `{0, 0}`; una arista de costo cero guarda `{1, 0}`. Son distintas. Las consultas y los caminos revisan `.existe`, nunca si el peso es diferente de cero. En modo no ponderado, una arista guarda `{1, 1}` como convención interna, pero no se presenta como ponderada.
 
 Ejemplo:
 
@@ -137,6 +145,9 @@ Pedir nombres únicos
 Elegir tipo de grafo
   |
   v
+Elegir si tiene pesos
+  |
+  v
 Ingresar conexiones
   |
   v
@@ -181,7 +192,7 @@ Esta función se reutiliza para:
 
 - Cantidad de nodos.
 - Tipo de grafo.
-- Valores de la matriz.
+- Valores de la matriz no ponderada y selección de ponderación.
 - Opciones del menú.
 - Longitud de una secuencia.
 
@@ -256,6 +267,28 @@ Presenta dos opciones:
 
 Luego transforma la opción numérica en un valor de `TipoGrafo`.
 
+### `pedirPonderacion`
+
+```cpp
+bool pedirPonderacion();
+```
+
+Ofrece `1. No ponderado (0/1)` y `2. Ponderado (pesos numericos)`. Devuelve `true` para la segunda opción. Ese valor se pasa a las funciones que deben capturar o presentar los datos de forma diferente.
+
+### `pesoValido`, `interpretarPeso`, `formatearPeso` y `textoConexion`
+
+```cpp
+bool pesoValido(double peso);
+bool interpretarPeso(const string& texto, double& peso);
+string formatearPeso(double peso);
+string textoConexion(const Conexion& conexion, bool ponderado);
+```
+
+- `pesoValido` revisa que el número sea finito y su valor absoluto no supere mil millones.
+- `interpretarPeso` usa `stod` para convertir un texto a `double`. Comprueba que se haya consumido todo el texto, por lo que `2abc` no se acepta como `2`. Captura las excepciones `invalid_argument` y `out_of_range` para no cerrar el programa ante un error. Solo modifica el parámetro `peso` cuando la conversión es válida. La captura elimina espacios de los extremos al extraer el dato con `stringstream`.
+- `formatearPeso` convierte un número en texto, con hasta 15 cifras significativas, sin llenar los enteros de ceros decimales. Presenta `-0` como `0`.
+- `textoConexion` decide qué mostrar en una celda: `0/1` en modo binario; `x` o el peso en modo ponderado. También sirve para describir conflictos de simetría.
+
 ### `pedirValorAdyacencia`
 
 ```cpp
@@ -278,13 +311,22 @@ Existe la arista 'A' -> 'B'? (0/1):
 
 Solamente acepta `0` o `1`. Si el origen y el destino son el mismo nodo, el valor `1` representa un lazo. El programa informa qué nodo tiene el lazo, explica que esta versión trabaja con grafos simples y vuelve a pedir esa celda hasta recibir `0`.
 
+### `pedirConexion`
+
+```cpp
+Conexion pedirConexion(const string& origen, const string& destino,
+                        TipoGrafo tipo, bool ponderado);
+```
+
+Es la entrada común para una celda. Sin pesos, delega en `pedirValorAdyacencia`. Con pesos, pide un solo dato: `x` devuelve una ausencia; un número válido devuelve `{1, peso}`. Rechaza líneas vacías, varios datos en una línea y pesos incorrectos, repitiendo solo esa pregunta. Si el origen coincide con el destino, informa el lazo y exige `x`, incluso si el peso ingresado fue cero.
+
 ### `ingresarMatriz`
 
 ```cpp
 void ingresarMatriz(
-    vector<vector<int>>& matriz,
+    vector<vector<Conexion>>& matriz,
     const vector<string>& nombres,
-    TipoGrafo tipo
+    TipoGrafo tipo, bool ponderado
 );
 ```
 
@@ -313,15 +355,15 @@ matriz[j][i] = matriz[i][j];
 
 Así se garantiza automáticamente que la matriz sea simétrica.
 
-Se pregunta también por la diagonal. En un grafo no dirigido se recorre el triángulo superior incluyéndola: para tres nodos, el orden es `A-A`, `A-B`, `A-C`, `B-B`, `B-C`, `C-C`. Los lazos se detectan, se informan y se rechazan; el usuario debe corregirlos a cero. Un error en esa celda no obliga a volver a ingresar los nombres ni las conexiones anteriores.
+Se pregunta también por la diagonal. En un grafo no dirigido se recorre el triángulo superior incluyéndola: para tres nodos, el orden es `A-A`, `A-B`, `A-C`, `B-B`, `B-C`, `C-C`. Los lazos se detectan, se informan y se rechazan; el usuario debe corregirlos a `0` sin pesos o `x` con pesos. La copia simétrica copia tanto la existencia como el peso. Un error en esa celda no obliga a volver a ingresar los nombres ni las conexiones anteriores.
 
 ### `validarMatriz`
 
 ```cpp
 bool validarMatriz(
-    const vector<vector<int>>& matriz,
+    const vector<vector<Conexion>>& matriz,
     const vector<string>& nombres,
-    TipoGrafo tipo,
+    TipoGrafo tipo, bool ponderado,
     string& error
 );
 ```
@@ -332,9 +374,11 @@ Comprueba que:
 - La cantidad de filas coincida con la cantidad de nombres.
 - El tipo de grafo sea válido.
 - Todas las filas estén completas y la matriz sea cuadrada.
-- Todos los valores sean `0` o `1`.
-- La diagonal principal esté en cero.
-- Sea simétrica si el grafo es no dirigido.
+- Cada indicador `.existe` sea `0` o `1`.
+- Cada peso sea finito y esté dentro del rango permitido.
+- Las ausencias tengan peso interno cero; las aristas no ponderadas tengan peso interno uno.
+- No existan conexiones en la diagonal, cualquiera que sea su peso.
+- La existencia y el peso sean simétricos si el grafo es no dirigido.
 
 Primero revisa el tamaño de **todas** las filas, antes de consultar cualquier celda. Esto evita leer fuera de los límites de un vector si una fila posterior está incompleta. Después revisa valores, diagonal y simetría.
 
@@ -356,32 +400,32 @@ La captura no dirigida mantiene la simetría automáticamente; la comprobación 
 ```cpp
 void mostrarResumen(
     const vector<string>& nombres,
-    TipoGrafo tipo
+    TipoGrafo tipo, bool ponderado
 );
 ```
 
-Muestra la cantidad de nodos y si el grafo es dirigido o no dirigido.
+Muestra la cantidad de nodos, la dirección y si tiene pesos.
 
 ### `imprimirMatriz`
 
 ```cpp
 void imprimirMatriz(
-    const vector<vector<int>>& matriz,
-    const vector<string>& nombres
+    const vector<vector<Conexion>>& matriz,
+    const vector<string>& nombres, bool ponderado
 );
 ```
 
 Imprime los nombres de los nodos como encabezados de filas y columnas.
 
-`setw` usa un ancho calculado a partir del nombre más largo más dos espacios. Así caben nombres compuestos. El ancho se mide en bytes: algunos caracteres Unicode pueden verse desalineados según la terminal y su fuente.
+`setw` usa un ancho calculado a partir del nombre o valor mostrado más largo, más dos espacios. Así caben nombres compuestos y pesos extensos o negativos. El ancho se mide en bytes: algunos caracteres Unicode pueden verse desalineados según la terminal y su fuente. Con pesos se imprime una leyenda para recordar la diferencia entre `x` y `0`.
 
 ### `mostrarRepresentacionMatematica`
 
 ```cpp
 void mostrarRepresentacionMatematica(
-    const vector<vector<int>>& matriz,
+    const vector<vector<Conexion>>& matriz,
     const vector<string>& nombres,
-    TipoGrafo tipo
+    TipoGrafo tipo, bool ponderado
 );
 ```
 
@@ -408,6 +452,18 @@ A = {<"A","B">, <"C","A">}
 ```
 
 En este caso sí importa el orden de los nodos.
+
+Si el grafo tiene pesos, se incluyen en cada conexión:
+
+```text
+G = (V, E)
+E = {("A","B",0), ("B","C",-2.5)}
+
+G = (V, A)
+A = {<"A","B",0>, <"B","C",-2.5>}
+```
+
+La primera forma sigue representando aristas no dirigidas: cada par se lista una sola vez, con su peso. La segunda conserva el orden de origen y destino. Una ausencia no se imprime, pero una arista de peso cero sí. Si no hay conexiones, el conjunto correspondiente queda vacío: `E = {}` o `A = {}`.
 
 ### `buscarIndiceNodo`
 
@@ -453,30 +509,32 @@ Si el vector está vacío, imprime `Ninguno`.
 ```cpp
 void mostrarAdyacentes(
     int indice,
-    const vector<vector<int>>& matriz,
+    const vector<vector<Conexion>>& matriz,
     const vector<string>& nombres,
     TipoGrafo tipo
 );
 ```
 
-En un grafo no dirigido, revisa la fila del nodo y muestra todos sus vecinos.
+En un grafo no dirigido, revisa la fila del nodo y muestra todos sus vecinos. Su grado es la cantidad de vecinos, no la suma de sus pesos. Como no hay lazos ni aristas paralelas, basta con contar las conexiones existentes.
 
 En un grafo dirigido distingue:
 
-- Sucesores: nodos hacia los que sale una arista.
-- Predecesores: nodos desde los que llega una arista.
+- Sucesores: nodos hacia los que sale una arista; su cantidad es el grado de salida.
+- Predecesores: nodos desde los que llega una arista; su cantidad es el grado de entrada.
 
 Para encontrar sucesores se revisa una fila:
 
 ```cpp
-matriz[indice][j]
+matriz[indice][j].existe
 ```
 
 Para encontrar predecesores se revisa una columna:
 
 ```cpp
-matriz[j][indice]
+matriz[j][indice].existe
 ```
+
+Si no tiene conexiones incidentes, informa explícitamente que es un nodo aislado. En un grafo dirigido deben estar vacíos **ambos** conjuntos: tener solo entradas o solo salidas no significa estar aislado. Las aristas con peso cero o negativo también cuentan.
 
 ### `pedirSecuenciaNodos`
 
@@ -505,7 +563,7 @@ la función podría devolver:
 ```cpp
 bool esCamino(
     const vector<int>& secuencia,
-    const vector<vector<int>>& matriz
+    const vector<vector<Conexion>>& matriz
 );
 ```
 
@@ -518,7 +576,7 @@ A con B
 B con C
 ```
 
-Si alguna de esas conexiones no existe, la secuencia no es un camino.
+Si alguna de esas conexiones no existe, la secuencia no es un camino. Se revisa `.existe`; un peso cero o negativo no invalida la conexión.
 
 La longitud del camino es el número de nodos menos uno:
 
@@ -568,7 +626,7 @@ no se acepta como ciclo no dirigido: utiliza dos veces la misma arista.
 ```cpp
 bool esCiclo(
     const vector<int>& secuencia,
-    const vector<vector<int>>& matriz,
+    const vector<vector<Conexion>>& matriz,
     TipoGrafo tipo
 );
 ```
@@ -591,8 +649,8 @@ A B C A
 ```cpp
 void analizarSecuencia(
     const vector<int>& secuencia,
-    const vector<vector<int>>& matriz,
-    TipoGrafo tipo
+    const vector<vector<Conexion>>& matriz,
+    TipoGrafo tipo, bool ponderado
 );
 ```
 
@@ -609,13 +667,15 @@ O, si falta una conexión:
 La secuencia no es un camino.
 ```
 
+Si tiene pesos y la secuencia es válida, suma el `.peso` de cada conexión consecutiva y muestra `Costo total`. La longitud sigue contando aristas: no se confunde con el costo. Una secuencia de un solo nodo tiene longitud y costo cero. Esto analiza únicamente la secuencia ingresada; todavía no busca caminos ni calcula una ruta mínima.
+
 ### `generarArchivoDOT`
 
 ```cpp
 bool generarArchivoDOT(
-    const vector<vector<int>>& matriz,
+    const vector<vector<Conexion>>& matriz,
     const vector<string>& nombres,
-    TipoGrafo tipo,
+    TipoGrafo tipo, bool ponderado,
     const string& nombreArchivo
 );
 ```
@@ -637,6 +697,8 @@ graph G {
 ```
 
 Para un grafo dirigido utiliza `digraph` y el conector `->`.
+
+Si es ponderado, cada arista lleva una etiqueta, por ejemplo `n0 -- n1 [label="0"];`. Se conserva el peso cero y se omiten únicamente las ausencias. Esto prepara un DOT con pesos, pero no sustituye el renderizado Python pendiente de HU-06.
 
 Los identificadores internos `n0`, `n1`, etc. evitan conflictos con palabras reservadas o símbolos en los nombres. `quoted` escribe las etiquetas entre comillas y escapa comillas y barras invertidas. Al cerrar el archivo se comprueba si ocurrió un error de escritura.
 
@@ -660,7 +722,7 @@ Presenta las operaciones disponibles:
 `main` coordina el programa:
 
 1. Solicita los datos básicos.
-2. Crea la matriz llena de ceros.
+2. Pide si tiene pesos y crea una matriz de conexiones ausentes (`{0, 0}`).
 3. Ingresa las conexiones.
 4. Valida la matriz y muestra el motivo si hace falta volver a capturarla.
 5. Muestra la información inicial.
@@ -687,7 +749,8 @@ B -- A
 Su matriz debe ser simétrica:
 
 ```text
-matriz[A][B] == matriz[B][A]
+matriz[A][B].existe == matriz[B][A].existe
+matriz[A][B].peso == matriz[B][A].peso
 ```
 
 ### Dirigido
@@ -730,6 +793,7 @@ Nodo 1: A
 Nodo 2: B
 Nodo 3: C
 Tipo: 1
+Ponderacion: 1 (no ponderado)
 A -- A: 0
 A -- B: 1
 A -- C: 1
@@ -760,6 +824,7 @@ Para el nodo `A`:
 
 ```text
 Adyacentes de A: B, C
+Grado: 2
 ```
 
 ### Camino
@@ -829,6 +894,8 @@ A = {<"A","B">, <"B","C">, <"C","A">}
 ```text
 Sucesores de A: B
 Predecesores de A: C
+Grado de salida: 1
+Grado de entrada: 1
 ```
 
 ### Secuencia
@@ -840,6 +907,32 @@ A B C A
 Forma un ciclo dirigido porque existen los tres arcos en el orden indicado.
 
 La secuencia inversa `A C B A` no es un camino, salvo que también existan esos arcos en sentido contrario.
+
+### Ejemplo ponderado para practicar
+
+Crear `A`, `B`, `C`; escoger tipo `1` y ponderación `2`. Ingresar, en orden:
+
+```text
+A -- A: x
+A -- B: 0
+A -- C: x
+B -- B: x
+B -- C: -2.5
+C -- C: x
+```
+
+La matriz impresa es:
+
+```text
+           A     B     C
+     A     x     0     x
+     B     0     x  -2.5
+     C     x  -2.5     x
+```
+
+En la opción 2 aparecerá `E = {("A","B",0), ("B","C",-2.5)}`. En la opción 4, ingresar longitud `3` y los nombres `A`, `B`, `C`: debe informar longitud de dos aristas y costo `-2.5`. `A C` no es camino; `A B A` tiene costo cero, pero no es ciclo no dirigido porque repite la misma arista.
+
+En la opción 3, consultar `B`: sus vecinos son `A, C` y su grado es `2`, no `-2.5`. Estos son resultados esperados para verificar cuando se compile el programa.
 
 ## 9. Uso de Graphviz
 
@@ -893,14 +986,18 @@ Significado de las opciones:
 
 ## 11. Casos de prueba recomendados
 
-La parte 1 incluye `pruebas/probar_hu02.py`, actualizado al ingreso de la diagonal. La parte 2 añade `pruebas/probar_hu04.py`, para probar correcciones de lazos y entradas inválidas, y `pruebas/validar_matriz.cpp`, con 16 casos directos de validación. Los scripts Python usan solo la biblioteca estándar y ejecutan la aplicación real en directorios temporales; todavía no son la interfaz gráfica de HU-06.
+Las pruebas anteriores de HU-02 y HU-04 se adaptaron a la selección de ponderación. `validar_matriz.cpp` conserva sus 16 casos binarios usando el registro `Conexion`. Las nuevas pruebas cubren pesos, costos de secuencias, DOT, errores numéricos, simetría, grados y aislamiento. Los scripts Python usan solo la biblioteca estándar y ejecutan la aplicación real en directorios temporales; todavía no son la interfaz gráfica de HU-06.
 
 ```powershell
 g++ -std=c++17 -Wall -Wextra -pedantic algoritmo.cpp -o algoritmo.exe
 python pruebas/probar_hu02.py .\algoritmo.exe
 python pruebas/probar_hu04.py .\algoritmo.exe
+python pruebas/probar_ponderados.py .\algoritmo.exe
+python pruebas/probar_hu07.py .\algoritmo.exe
 g++ -std=c++17 -Wall -Wextra -pedantic -D_GLIBCXX_ASSERTIONS pruebas/validar_matriz.cpp -o prueba_matriz.exe
 .\prueba_matriz.exe
+g++ -std=c++17 -Wall -Wextra -pedantic -D_GLIBCXX_ASSERTIONS pruebas/validar_pesos.cpp -o prueba_pesos.exe
+.\prueba_pesos.exe
 ```
 
 Compilar cada archivo C++ por separado. El archivo de pruebas incluye `algoritmo.cpp` y cambia el nombre de su `main` solo durante esa compilación, para probar la función verdadera sin duplicar su implementación. `-D_GLIBCXX_ASSERTIONS` activa comprobaciones adicionales al usar GCC/libstdc++ y ayuda a detectar accesos fuera de rango.
@@ -919,8 +1016,10 @@ Intentar ingresar:
 
 Los símbolos imprimibles sí son nombres válidos. Continuar probando:
 
-- Un valor diferente de `0` o `1` para una conexión.
-- `1` en la diagonal; debe informar el lazo y volver a pedir esa celda.
+- Un valor diferente de `0` o `1` para una conexión no ponderada.
+- `1` en la diagonal no ponderada; debe informar el lazo y volver a pedir esa celda.
+- Un peso `nan`, `inf`, `2abc`, `2,5` o fuera del rango numérico.
+- Un peso `0` en la diagonal ponderada; debe detectar el lazo y pedir `x`.
 - Una opción del menú fuera del rango.
 
 El programa debe mostrar un mensaje y volver a solicitar el dato.
@@ -934,6 +1033,7 @@ El nodo `C` debe:
 - Aparecer en la matriz.
 - Aparecer en el conjunto `V`.
 - Mostrar `Ninguno` al consultar sus adyacentes.
+- Mostrar grado cero y el aviso de nodo aislado.
 - Aparecer en el archivo DOT.
 
 ### Prueba 3: camino inválido
@@ -1037,9 +1137,9 @@ Porque es la representación solicitada en la guía y permite consultar directam
 
 Porque si existe `A-B`, también existe `B-A`. Las posiciones `[A][B]` y `[B][A]` deben contener el mismo valor.
 
-### ¿Por qué la diagonal contiene ceros?
+### ¿Por qué la diagonal contiene ceros o `x`?
 
-Porque esta versión trabaja con grafos simples y no permite aristas desde un nodo hacia sí mismo.
+Porque esta versión no permite aristas desde un nodo hacia sí mismo. Sin pesos, la ausencia se presenta con `0`; con pesos se presenta con `x`, pues un peso cero es una conexión real.
 
 ### ¿Cuál es la diferencia entre adyacentes, sucesores y predecesores?
 
@@ -1067,12 +1167,12 @@ Porque permite representar grafos dirigidos y no dirigidos con poco código, y G
 
 ## 14. Limitaciones conocidas
 
-Estas son las limitaciones de la versión actual. El plan incremental contempla ampliar pesos, búsqueda de caminos y visualización para cumplir las historias nuevas:
+Estas son las limitaciones de la versión actual. El plan incremental contempla búsqueda de caminos y visualización para cumplir las historias nuevas:
 
 - Los nombres se ingresan uno por línea y distinguen mayúsculas de minúsculas.
 - El máximo es de 26 nodos.
 - No se permiten lazos.
-- No se permiten pesos.
+- Los pesos se limitan al intervalo de ±mil millones, con la precisión aproximada de `double`; la salida muestra hasta 15 cifras significativas.
 - No se buscan caminos automáticamente; se valida una secuencia propuesta por el usuario.
 - El programa genera DOT, pero necesita Graphviz para convertirlo en imagen.
 - Los datos no se guardan para otra ejecución.
@@ -1118,6 +1218,7 @@ El informe puede organizarse así:
 - [ ] No aparecen advertencias importantes.
 - [ ] Se probó un grafo dirigido.
 - [ ] Se probó un grafo no dirigido.
+- [ ] Se probaron pesos negativos, decimales y cero frente a ausencia.
 - [ ] Se probó un nodo aislado.
 - [ ] Se comprobó un camino válido y uno inválido.
 - [ ] Se comprobó un ciclo válido.
@@ -1139,6 +1240,9 @@ PLAN_INCREMENTAL.md   Entregas por historia de usuario.
 pruebas/probar_hu02.py Pruebas del ejecutable para la parte 1.
 pruebas/probar_hu04.py Pruebas de captura y corrección de lazos.
 pruebas/validar_matriz.cpp Pruebas directas de integridad de la matriz.
+pruebas/probar_ponderados.py Pruebas de consola, costos y DOT con pesos.
+pruebas/validar_pesos.cpp Pruebas directas de pesos, estructura y conexiones.
+pruebas/probar_hu07.py Pruebas de grados y nodos aislados.
 algoritmo_previo.cpp   Respaldo de la versión anterior.
 ```
 
@@ -1160,7 +1264,7 @@ git status
 Agregar únicamente los archivos que realmente se quieran publicar:
 
 ```powershell
-git add algoritmo.cpp PLAN_LAB3.md EXPLICACION_LAB3.md PLAN_INCREMENTAL.md pruebas/probar_hu02.py pruebas/probar_hu04.py pruebas/validar_matriz.cpp
+git add algoritmo.cpp PLAN_LAB3.md EXPLICACION_LAB3.md PLAN_INCREMENTAL.md pruebas/probar_hu02.py pruebas/probar_hu04.py pruebas/validar_matriz.cpp pruebas/probar_ponderados.py pruebas/validar_pesos.cpp pruebas/probar_hu07.py
 ```
 
 El archivo `algoritmo_previo.cpp` es un respaldo. Se puede conservar localmente o incluirlo solamente si el equipo considera útil mostrar la evolución. No es necesario para ejecutar la versión final.
@@ -1168,7 +1272,7 @@ El archivo `algoritmo_previo.cpp` es un respaldo. Se puede conservar localmente 
 Crear el commit:
 
 ```powershell
-git commit -m "Implementar HU-04: validar matriz y detectar lazos"
+git commit -m "Agregar grafos ponderados y completar consulta de grados"
 ```
 
 Finalmente:
@@ -1181,4 +1285,4 @@ Antes del `push`, es importante comprobar que no se estén agregando ejecutables
 
 ## 20. Resumen corto para explicar el proyecto
 
-El programa permite construir un grafo simple dirigido o no dirigido mediante una matriz de adyacencia. Valida la cantidad y los nombres de los nodos, recibe cada conexión y garantiza la integridad de la matriz. Después permite mostrar la representación matemática, consultar adyacencias y verificar caminos y ciclos a partir de secuencias ingresadas por el usuario. Finalmente exporta la estructura a formato DOT para obtener una representación gráfica con Graphviz. La solución utiliza programación procedural y funciones pequeñas para mantener el código claro y fácil de explicar.
+El programa permite construir un grafo dirigido o no dirigido, con o sin pesos y sin lazos ni aristas paralelas. Cada celda de la matriz distingue la existencia de una conexión de su peso, por lo que admite costos cero y negativos. Valida los nodos y la matriz; permite mostrar la representación matemática, consultar vecinos y grados e identificar nodos aislados. Verifica caminos y ciclos a partir de secuencias ingresadas y suma su costo cuando corresponde. Exporta DOT con etiquetas de pesos para Graphviz. La solución sigue siendo procedural, con funciones y un registro sencillo. La búsqueda automática, la interfaz Python y las rutas mínimas todavía no están implementadas.

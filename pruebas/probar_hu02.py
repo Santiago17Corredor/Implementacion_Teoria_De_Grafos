@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 
 
-def ejecutar(executable, datos, esperados, codigo=0, dot_esperado=None):
+def ejecutar(executable, datos, esperados, codigo=0, dot_esperado=None, prohibidos=()):
     with tempfile.TemporaryDirectory(prefix="lab3_hu02_") as carpeta:
         resultado = subprocess.run(
             [str(executable)],
@@ -29,6 +29,10 @@ def ejecutar(executable, datos, esperados, codigo=0, dot_esperado=None):
             if texto not in salida:
                 raise AssertionError(f"No aparece {texto!r} en la salida:\n{salida}")
 
+        for texto in prohibidos:
+            if texto in salida:
+                raise AssertionError(f"Aparece un texto incorrecto {texto!r}:\n{salida}")
+
         if dot_esperado is not None:
             contenido = (Path(carpeta) / "grafo.dot").read_text(encoding="utf-8")
             if contenido != dot_esperado:
@@ -39,7 +43,7 @@ def probar(executable):
     ejecutar(
         executable,
         ["texto", "1", "0", "-1", "27", "2", "", "   ", "  v1  ",
-         "v1", "15", "1", "0", "error", "2", "1", "0", "9", "2", "3",
+         "v1", "15", "1", "1", "0", "error", "2", "1", "0", "9", "2", "3",
          "inexistente", "v1", "4", "2", "v1", "15", "0"],
         ["El grafo requiere al menos 2 nodos", "Ingrese un numero entre 2 y 26",
          "El nombre del nodo no puede estar vacio", "El nombre ya pertenece",
@@ -52,7 +56,7 @@ def probar(executable):
 
     ejecutar(
         executable,
-        ["2", "A", "a", "2", "0", "1", "0", "0", "2", "3", "A", "4", "2",
+        ["2", "A", "a", "2", "1", "0", "1", "0", "0", "2", "3", "A", "4", "2",
          "A", "a", "4", "2", "a", "A", "0"],
         ['V = {"A", "a"}', 'A = {<"A","a">}',
          "Sucesores de A: a", "Predecesores de A: Ninguno",
@@ -62,7 +66,7 @@ def probar(executable):
 
     ejecutar(
         executable,
-        ["3", "Nodo central", "@", "v1", "1", "0", "1", "1", "0", "1", "0",
+        ["3", "Nodo central", "@", "v1", "1", "1", "0", "1", "1", "0", "1", "0",
          "4", "4", "Nodo central", "@", "v1", "Nodo central", "0"],
         ["Longitud: 3 aristas.", "Tambien forma un ciclo simple."],
     )
@@ -70,18 +74,18 @@ def probar(executable):
 
     ejecutar(
         executable,
-        ["2", "nombre\tconcontrol", "v1", "v2", "1", "0", "0", "0", "0"],
+        ["2", "nombre\tconcontrol", "v1", "v2", "1", "1", "0", "0", "0", "0"],
         ["El nombre no puede contener caracteres de control", "Programa finalizado."],
     )
     print("OK: rechazo de caracteres de control internos.")
 
-    datos = ["26"] + [f"N{i}" for i in range(26)] + ["1"] + ["0"] * 351 + ["0"]
+    datos = ["26"] + [f"N{i}" for i in range(26)] + ["1", "1"] + ["0"] * 351 + ["0"]
     ejecutar(executable, datos, ["Cantidad de nodos: 26", "Programa finalizado."])
     print("OK: limite superior de 26 nodos.")
 
     ejecutar(
         executable,
-        ["3", 'A "B"', "C:\\ruta", "Bogotá", "1", "0", "1", "0", "0", "0", "0", "5", "0"],
+        ["3", 'A "B"', "C:\\ruta", "Bogotá", "1", "1", "0", "1", "0", "0", "0", "0", "5", "0"],
         ["Archivo grafo.dot generado correctamente."],
         dot_esperado=(
             'graph G {\n    rankdir=LR;\n    node [shape=circle];\n'
@@ -95,7 +99,7 @@ def probar(executable):
 
     ejecutar(
         executable,
-        ["2", "graph", "x,y", "2", "0", "1", "0", "0", "5", "0"],
+        ["2", "graph", "x,y", "2", "1", "0", "1", "0", "0", "5", "0"],
         ["Archivo grafo.dot generado correctamente."],
         dot_esperado=(
             'digraph G {\n    rankdir=LR;\n    node [shape=circle];\n'
@@ -105,8 +109,8 @@ def probar(executable):
     )
     print("OK: DOT dirigido con palabras reservadas y puntuacion.")
 
-    for datos in ([], ["2"], ["2", "a", "b", "1"],
-                  ["2", "a", "b", "1", "0", "0", "0"]):
+    for datos in ([], ["2"], ["2", "a", "b", "1"], ["2", "a", "b", "1", "1"],
+                  ["2", "a", "b", "1", "1", "0", "0", "0"]):
         ejecutar(executable, datos, ["Entrada finalizada. Programa cerrado."], codigo=1)
     print("OK: fin de entrada durante cantidad, nombres, matriz y menu.")
 

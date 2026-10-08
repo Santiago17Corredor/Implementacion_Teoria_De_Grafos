@@ -9,8 +9,14 @@ int comprobar(const string& caso,
               TipoGrafo tipo,
               bool esperado,
               const string& detalle = "") {
+    vector<vector<Conexion>> conexiones(matriz.size());
+    for (size_t i = 0; i < matriz.size(); i++) {
+        for (int valor : matriz[i]) {
+            conexiones[i].push_back({valor, static_cast<double>(valor)});
+        }
+    }
     string error = "Error de una validacion anterior";
-    bool valido = validarMatriz(matriz, nombres, tipo, error);
+    bool valido = validarMatriz(conexiones, nombres, tipo, false, error);
 
     if (valido != esperado || (valido && !error.empty()) ||
         (!valido && (error.empty() || error.find(detalle) == string::npos))) {

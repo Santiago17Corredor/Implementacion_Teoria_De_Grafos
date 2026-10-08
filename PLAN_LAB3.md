@@ -1,6 +1,6 @@
 # Plan de desarrollo - Laboratorio 3: Teoría de grafos
 
-Este es el plan de la base inicial, actualizado en nombres de nodos para HU-02 y validaciones binarias para HU-04. Las ampliaciones exigidas por las historias de usuario y el orden de los próximos commits están en [PLAN_INCREMENTAL.md](PLAN_INCREMENTAL.md). Que una función aparezca implementada aquí no significa que cumpla todos los criterios de las historias nuevas.
+Este es el plan de la base inicial, actualizado hasta las partes 3 y 4: pesos, grados y aislamiento. Las ampliaciones exigidas por las historias de usuario y el orden de los próximos commits están en [PLAN_INCREMENTAL.md](PLAN_INCREMENTAL.md). Que una función aparezca implementada aquí no significa que cumpla todos los criterios de las historias nuevas ni que se haya comprobado su ejecución.
 
 ## 1. Objetivo
 
@@ -16,9 +16,10 @@ Este plan cubre solamente la Guía 3. No incluye algoritmos de ruta más corta n
 ## Estado de implementación
 
 - [x] Entrada segura de nodos y tipo de grafo.
+- [x] Selección independiente de ponderación, pesos cero/negativos/decimales y ausencia explícita.
 - [x] Construcción y validación de la matriz de adyacencia.
 - [x] Representación matemática de vértices y aristas.
-- [x] Consulta de nodos adyacentes.
+- [x] Consulta de nodos adyacentes, grados y aviso de nodo aislado.
 - [x] Verificación de caminos y ciclos.
 - [x] Menú de operaciones.
 - [x] Exportación del grafo a formato DOT.
@@ -47,7 +48,7 @@ El programa tendrá el siguiente flujo:
 
 1. Solicitar la cantidad de nodos.
 2. Solicitar un nombre único por línea para cada nodo.
-3. Preguntar si el grafo es dirigido o no dirigido.
+3. Preguntar si el grafo es dirigido o no dirigido y, por separado, si tiene pesos.
 4. Ingresar la matriz de adyacencia.
 5. Validar la integridad de la matriz.
 6. Mostrar la matriz con los nombres de los nodos.
@@ -58,15 +59,15 @@ El programa tendrá el siguiente flujo:
 
 ### Decisión sobre el tipo de grafo
 
-La primera versión trabajará con grafos simples y no ponderados:
+La versión actual trabaja sin lazos ni aristas paralelas, con dos modalidades:
 
-- `0`: no existe arista.
-- `1`: existe arista.
-- La diagonal principal debe contener ceros; no se permitirán lazos.
+- Sin pesos: `0` indica ausencia y `1` indica arista.
+- Con pesos: `x`/`X` indica ausencia; un número finito entre ±mil millones indica una conexión, incluido cero. Admite negativos y decimales con punto.
+- La diagonal debe contener ausencias: `0` sin pesos o `x` con pesos. Los intentos de lazo se informan y rechazan.
 - En un grafo no dirigido, la matriz debe ser simétrica.
 - En un grafo dirigido, la matriz no necesita ser simétrica.
 
-La opción actual de grafo "etiquetado" debe retirarse si no produce ningún comportamiento diferente. La base inicial es no ponderada. Las nuevas HU-01, HU-03 y HU-05 también exigen pesos: se incorporarán en la parte 3 del plan incremental, antes de las rutas mínimas.
+La ponderación modifica captura, validación, matriz, representación matemática, costo de secuencias y etiquetas DOT. La gráfica Python continúa pendiente; no se considera cumplido ese criterio de HU-01/HU-06.
 
 ## 4. Estructuras de datos
 
@@ -74,7 +75,11 @@ Se conservarán estructuras básicas de la biblioteca estándar:
 
 ```cpp
 vector<string> nombresNodos;
-vector<vector<int>> matrizAdyacencia;
+struct Conexion {
+    int existe = 0;
+    double peso = 0;
+};
+vector<vector<Conexion>> matrizAdyacencia;
 ```
 
 No se necesita crear una clase `Grafo` en esta etapa. El tipo del grafo puede almacenarse como un `bool dirigido` o mediante un `enum` sencillo:
@@ -90,9 +95,9 @@ El `enum` es preferible a usar números mágicos como `1` y `2` después de leer
 
 ## 5. Ingreso de la matriz
 
-La matriz se ingresará celda por celda, aceptando únicamente `0` o `1`.
+La matriz se ingresa celda por celda: `0/1` sin pesos, o un peso/`x` con pesos. El registro separa existencia y costo, por lo que `{1, 0}` es una conexión de costo cero y `{0, 0}` es ausencia. No requiere métodos ni POO.
 
-Para un grafo dirigido se piden todas las posiciones, incluida la diagonal. Si se escribe `1` en la diagonal, se informa el lazo y se solicita corregir esa celda a `0`, porque se conserva el alcance de grafos simples.
+Para un grafo dirigido se piden todas las posiciones, incluida la diagonal. Si se ingresa una conexión diagonal, se informa el lazo y se solicita corregir esa celda a ausencia (`0` sin pesos o `x` con pesos).
 
 Para un grafo no dirigido se pide solamente la mitad superior de la matriz, incluida la diagonal, y se copia automáticamente cada valor en su posición simétrica:
 
@@ -111,10 +116,13 @@ Esto garantiza la simetría y evita pedir dos veces la misma arista. Al finaliza
 int pedirCantidadNodos();
 void pedirNombresNodos(vector<string>& nombres, int cantidad);
 TipoGrafo pedirTipoGrafo();
+bool pedirPonderacion();
 int pedirValorAdyacencia(const string& origen, const string& destino, TipoGrafo tipo);
-void ingresarMatriz(vector<vector<int>>& matriz, const vector<string>& nombres, TipoGrafo tipo);
-bool validarMatriz(const vector<vector<int>>& matriz, const vector<string>& nombres,
-                   TipoGrafo tipo, string& error);
+Conexion pedirConexion(const string& origen, const string& destino, TipoGrafo tipo, bool ponderado);
+void ingresarMatriz(vector<vector<Conexion>>& matriz, const vector<string>& nombres,
+                    TipoGrafo tipo, bool ponderado);
+bool validarMatriz(const vector<vector<Conexion>>& matriz, const vector<string>& nombres,
+                   TipoGrafo tipo, bool ponderado, string& error);
 ```
 
 Las validaciones mínimas serán:
@@ -123,9 +131,10 @@ Las validaciones mínimas serán:
 - Entradas numéricas válidas.
 - Nombres no vacíos: letras, números, palabras y símbolos imprimibles. Se distinguen mayúsculas de minúsculas.
 - Nombres no repetidos.
-- Valores de matriz limitados a `0` y `1`.
-- Diagonal principal igual a cero.
-- Simetría para grafos no dirigidos.
+- Indicadores de existencia limitados a `0` y `1`.
+- Pesos finitos dentro del rango; ausencia con costo interno cero y arista no ponderada con costo interno uno.
+- Diagonal principal sin conexiones.
+- Simetría de existencia y pesos para grafos no dirigidos.
 
 La validación comprueba todos los tamaños antes de acceder a celdas. Si algo falla, devuelve una explicación que identifica la fila, celda, nodo o par de nodos involucrado. La captura permite corregir los datos; los lazos se informan y rechazan.
 
@@ -134,15 +143,15 @@ La entrada se recibe con `getline` y se analiza con `stringstream`. Si se cierra
 ### Presentación del grafo
 
 ```cpp
-void mostrarResumen(const vector<string>& nombres, TipoGrafo tipo);
+void mostrarResumen(const vector<string>& nombres, TipoGrafo tipo, bool ponderado);
 void imprimirMatriz(
-    const vector<vector<int>>& matriz,
-    const vector<string>& nombres
+    const vector<vector<Conexion>>& matriz,
+    const vector<string>& nombres, bool ponderado
 );
 void mostrarRepresentacionMatematica(
-    const vector<vector<int>>& matriz,
+    const vector<vector<Conexion>>& matriz,
     const vector<string>& nombres,
-    TipoGrafo tipo
+    TipoGrafo tipo, bool ponderado
 );
 ```
 
@@ -153,7 +162,7 @@ V = {A, B, C, D}
 E = {(A,B), (A,C), (C,D)}
 ```
 
-En grafos no dirigidos cada arista se mostrará una sola vez. En grafos dirigidos se conservará el orden, por ejemplo `<A,B>`.
+En grafos no dirigidos cada arista se muestra una sola vez. En grafos dirigidos se conserva el orden, por ejemplo `<"A","B">`. Si tiene pesos, se muestran tuplas como `("A","B",0)` o `<"A","B",-2.5>`.
 
 ### Nodos adyacentes
 
@@ -161,7 +170,7 @@ En grafos no dirigidos cada arista se mostrará una sola vez. En grafos dirigido
 int buscarIndiceNodo(const vector<string>& nombres, const string& nombre);
 void mostrarAdyacentes(
     int indice,
-    const vector<vector<int>>& matriz,
+    const vector<vector<Conexion>>& matriz,
     const vector<string>& nombres,
     TipoGrafo tipo
 );
@@ -172,6 +181,8 @@ Para grafos dirigidos conviene distinguir:
 - Sucesores: nodos hacia los que sale una arista.
 - Predecesores: nodos desde los que llega una arista.
 
+Se informa el grado en grafos no dirigidos y los grados de entrada/salida en dirigidos. Los grados cuentan conexiones, no pesos. Se avisa que un nodo es aislado solamente si no tiene conexiones incidentes, incluyendo ambas direcciones.
+
 ### Camino y ciclo
 
 Para mantener el código básico, el programa no buscará automáticamente todos los caminos. El usuario ingresará una secuencia de nodos y el programa comprobará si representa un camino válido.
@@ -180,16 +191,18 @@ Para mantener el código básico, el programa no buscará automáticamente todos
 vector<int> pedirSecuenciaNodos(const vector<string>& nombres);
 bool esCamino(
     const vector<int>& secuencia,
-    const vector<vector<int>>& matriz
+    const vector<vector<Conexion>>& matriz
 );
 bool esCiclo(
     const vector<int>& secuencia,
-    const vector<vector<int>>& matriz,
+    const vector<vector<Conexion>>& matriz,
     TipoGrafo tipo
 );
 ```
 
 Una secuencia es camino cuando cada par consecutivo está conectado. Para ser ciclo debe contener aristas y empezar y terminar en el mismo nodo; en grafos no dirigidos tampoco debe repetir aristas. La búsqueda automática de caminos y ciclos corresponde a las partes 5 y 6 del plan incremental.
+
+Las conexiones se consultan mediante `.existe`, por lo que cero y negativos son pesos válidos. Al verificar una secuencia ponderada también se suma su costo; esto no busca una ruta mínima.
 
 Ejemplos:
 
@@ -204,9 +217,9 @@ La opción más sencilla en C++ es generar un archivo `grafo.dot` compatible con
 
 ```cpp
 bool generarArchivoDOT(
-    const vector<vector<int>>& matriz,
+    const vector<vector<Conexion>>& matriz,
     const vector<string>& nombres,
-    TipoGrafo tipo,
+    TipoGrafo tipo, bool ponderado,
     const string& nombreArchivo
 );
 ```
@@ -215,6 +228,7 @@ Según el tipo de grafo se utilizará:
 
 - `graph` y `--` para grafos no dirigidos.
 - `digraph` y `->` para grafos dirigidos.
+- Etiquetas de pesos si el grafo es ponderado.
 
 Ejemplo:
 
@@ -255,7 +269,7 @@ El menú debe repetirse hasta que el usuario seleccione salir.
 
 - Corregir comentarios y caracteres dañados.
 - Sustituir opciones numéricas internas por `TipoGrafo`.
-- Eliminar la opción de etiquetado si no se utilizará.
+- La base inicial retiró la opción de etiquetado sin comportamiento; la parte 3 incorporó ponderación funcional.
 - Incorporar validación de entradas no numéricas.
 
 Resultado esperado: creación segura de nodos y selección del tipo de grafo.
@@ -347,7 +361,8 @@ Probar:
 - Nombres repetidos, incluidos duplicados con espacios en los extremos.
 - Nombres vacíos o con caracteres de control.
 - Texto en una entrada numérica.
-- Valores diferentes de `0` y `1`.
+- Valores diferentes de `0` y `1` en modo no ponderado.
+- Pesos inválidos, no finitos o fuera del rango; confundir cero con ausencia en la diagonal ponderada.
 - Nodos inexistentes dentro de una secuencia.
 
 El programa debe informar el error y volver a pedir el dato sin cerrarse ni quedar bloqueado.

@@ -1,11 +1,13 @@
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <set>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -16,6 +18,29 @@ enum class TipoGrafo {
     NoDirigido = 1,
     Dirigido = 2
 };
+
+struct Conexion {
+    int existe = 0;
+    double peso = 0;
+};
+
+bool pesoValido(double peso) {
+    return isfinite(peso) && abs(peso) <= 1e9;
+}
+
+string formatearPeso(double peso) {
+    ostringstream salida;
+    salida << setprecision(15) << (peso == 0 ? 0 : peso);
+    return salida.str();
+}
+
+string textoConexion(const Conexion& conexion, bool ponderado) {
+    if (!ponderado) {
+        return to_string(conexion.existe);
+    }
+
+    return conexion.existe ? formatearPeso(conexion.peso) : "x";
+}
 
 string leerLinea(const string& mensaje) {
     cout << mensaje;
@@ -124,6 +149,31 @@ TipoGrafo pedirTipoGrafo() {
     return static_cast<TipoGrafo>(opcion);
 }
 
+bool pedirPonderacion() {
+    cout << "\nPesos de las conexiones:\n";
+    cout << "1. No ponderado (0/1)\n";
+    cout << "2. Ponderado (pesos numericos)\n";
+    return leerEnteroEnRango("Opcion: ", 1, 2) == 2;
+}
+
+bool interpretarPeso(const string& texto, double& peso) {
+    try {
+        size_t consumidos;
+        double valor = stod(texto, &consumidos);
+
+        if (consumidos != texto.size() || !pesoValido(valor)) {
+            return false;
+        }
+
+        peso = valor;
+        return true;
+    } catch (const invalid_argument&) {
+        return false;
+    } catch (const out_of_range&) {
+        return false;
+    }
+}
+
 int pedirValorAdyacencia(const string& origen, const string& destino, TipoGrafo tipo) {
     string conector = tipo == TipoGrafo::Dirigido ? " -> " : " -- ";
     string mensaje = "Existe la arista '" + origen + "'" + conector +
@@ -141,18 +191,65 @@ int pedirValorAdyacencia(const string& origen, const string& destino, TipoGrafo 
     }
 }
 
-void ingresarMatriz(vector<vector<int>>& matriz,
+Conexion pedirConexion(const string& origen, const string& destino,
+                        TipoGrafo tipo, bool ponderado) {
+    if (!ponderado) {
+        int existe = pedirValorAdyacencia(origen, destino, tipo);
+        return {existe, static_cast<double>(existe)};
+    }
+
+    string conector = tipo == TipoGrafo::Dirigido ? " -> " : " -- ";
+    string mensaje = "Peso de '" + origen + "'" + conector + "'" + destino +
+                     "' (x = sin conexion): ";
+
+    while (true) {
+        stringstream entrada(leerLinea(mensaje));
+        string texto;
+        string sobrante;
+        double peso;
+
+        if (!(entrada >> texto) || (entrada >> sobrante)) {
+            cout << "Ingrese un solo peso o x.\n";
+            continue;
+        }
+
+        if (texto == "x" || texto == "X") {
+            return {};
+        }
+
+        if (!interpretarPeso(texto, peso)) {
+            cout << "Peso invalido. Use un numero finito entre -1000000000 y "
+                 << "1000000000, con punto decimal, o x.\n";
+            continue;
+        }
+
+        if (origen == destino) {
+            cout << "Se detecto un lazo en el nodo " << quoted(origen)
+                 << ". Esta version usa grafos simples; ingrese x.\n";
+            continue;
+        }
+
+        return {1, peso};
+    }
+}
+
+void ingresarMatriz(vector<vector<Conexion>>& matriz,
                     const vector<string>& nombres,
-                    TipoGrafo tipo) {
+                    TipoGrafo tipo, bool ponderado) {
     int cantidad = static_cast<int>(matriz.size());
     cout << "\nIngrese las conexiones del grafo, incluida la diagonal.\n";
-    cout << "La diagonal debe ser 0: esta version no admite lazos.\n";
+    if (ponderado) {
+        cout << "Use x para ausencia, incluso en la diagonal; 0 es una arista de costo cero.\n";
+        cout << "Pesos entre -1000000000 y 1000000000; decimales con punto.\n";
+    } else {
+        cout << "La diagonal debe ser 0: esta version no admite lazos.\n";
+    }
 
     for (int i = 0; i < cantidad; i++) {
         int inicio = tipo == TipoGrafo::Dirigido ? 0 : i;
 
         for (int j = inicio; j < cantidad; j++) {
-            matriz[i][j] = pedirValorAdyacencia(nombres[i], nombres[j], tipo);
+            matriz[i][j] = pedirConexion(nombres[i], nombres[j], tipo, ponderado);
 
             if (tipo == TipoGrafo::NoDirigido) {
                 matriz[j][i] = matriz[i][j];
@@ -161,9 +258,9 @@ void ingresarMatriz(vector<vector<int>>& matriz,
     }
 }
 
-bool validarMatriz(const vector<vector<int>>& matriz,
+bool validarMatriz(const vector<vector<Conexion>>& matriz,
                    const vector<string>& nombres,
-                   TipoGrafo tipo,
+                   TipoGrafo tipo, bool ponderado,
                    string& error) {
     error.clear();
     int cantidad = static_cast<int>(matriz.size());
@@ -195,18 +292,35 @@ bool validarMatriz(const vector<vector<int>>& matriz,
 
     for (int i = 0; i < cantidad; i++) {
         for (int j = 0; j < cantidad; j++) {
-            if (matriz[i][j] != 0 && matriz[i][j] != 1) {
-                error = "Valor invalido en ['" + nombres[i] + "']['" + nombres[j] +
-                        "']: " + to_string(matriz[i][j]) + ". Solo se permite 0 o 1.";
+            const Conexion& conexion = matriz[i][j];
+            string celda = "['" + nombres[i] + "']['" + nombres[j] + "']";
+
+            if (conexion.existe != 0 && conexion.existe != 1) {
+                error = "Valor invalido en " + celda + ": " +
+                        to_string(conexion.existe) + ". Solo se permite 0 o 1.";
+                return false;
+            }
+
+            if (!pesoValido(conexion.peso)) {
+                error = "Peso invalido en " + celda +
+                        ". Debe ser finito y estar entre -1000000000 y 1000000000.";
+                return false;
+            }
+
+            if ((!conexion.existe && conexion.peso != 0) ||
+                (!ponderado && conexion.existe && conexion.peso != 1)) {
+                error = "Peso inconsistente en " + celda +
+                        ". Una ausencia guarda 0; una arista no ponderada guarda 1.";
                 return false;
             }
         }
     }
 
     for (int i = 0; i < cantidad; i++) {
-        if (matriz[i][i] != 0) {
+        if (matriz[i][i].existe) {
             error = "Se detecto un lazo en el nodo '" + nombres[i] +
-                    "'. La diagonal debe ser 0 en un grafo simple.";
+                    "'. La diagonal debe ser " + (ponderado ? "x" : "0") +
+                    " en un grafo simple.";
             return false;
         }
     }
@@ -214,14 +328,15 @@ bool validarMatriz(const vector<vector<int>>& matriz,
     if (tipo == TipoGrafo::NoDirigido) {
         for (int i = 0; i < cantidad; i++) {
             for (int j = i + 1; j < cantidad; j++) {
-                if (matriz[i][j] == matriz[j][i]) {
+                if (matriz[i][j].existe == matriz[j][i].existe &&
+                    matriz[i][j].peso == matriz[j][i].peso) {
                     continue;
                 }
 
                 error = "Inconsistencia: de '" + nombres[i] + "' a '" + nombres[j] +
-                        "' hay " + to_string(matriz[i][j]) + ", pero de '" +
+                        "' hay " + textoConexion(matriz[i][j], ponderado) + ", pero de '" +
                         nombres[j] + "' a '" + nombres[i] + "' hay " +
-                        to_string(matriz[j][i]) + ". El grafo no dirigido debe ser simetrico.";
+                        textoConexion(matriz[j][i], ponderado) + ". El grafo no dirigido debe ser simetrico.";
                 return false;
             }
         }
@@ -230,20 +345,31 @@ bool validarMatriz(const vector<vector<int>>& matriz,
     return true;
 }
 
-void mostrarResumen(const vector<string>& nombres, TipoGrafo tipo) {
+void mostrarResumen(const vector<string>& nombres, TipoGrafo tipo, bool ponderado) {
     cout << "\nResumen del grafo\n";
     cout << "Cantidad de nodos: " << nombres.size() << '\n';
     cout << "Tipo: "
          << (tipo == TipoGrafo::Dirigido ? "Dirigido" : "No dirigido")
          << '\n';
+    cout << "Ponderacion: " << (ponderado ? "Ponderado" : "No ponderado") << '\n';
 }
 
-void imprimirMatriz(const vector<vector<int>>& matriz,
-                    const vector<string>& nombres) {
+void imprimirMatriz(const vector<vector<Conexion>>& matriz,
+                    const vector<string>& nombres, bool ponderado) {
     int ancho = 3;
 
     for (const string& nombre : nombres) {
         ancho = max(ancho, static_cast<int>(nombre.size()) + 2);
+    }
+
+    for (const auto& fila : matriz) {
+        for (const Conexion& conexion : fila) {
+            ancho = max(ancho, static_cast<int>(textoConexion(conexion, ponderado).size()) + 2);
+        }
+    }
+
+    if (ponderado) {
+        cout << "\nPesos: x = sin conexion; 0 = arista de costo cero.\n";
     }
 
     cout << "\nMatriz de adyacencia:\n" << setw(ancho) << "";
@@ -257,17 +383,18 @@ void imprimirMatriz(const vector<vector<int>>& matriz,
     for (int i = 0; i < static_cast<int>(matriz.size()); i++) {
         cout << setw(ancho) << nombres[i];
 
-        for (int valor : matriz[i]) {
-            cout << setw(ancho) << valor;
+        for (const Conexion& conexion : matriz[i]) {
+            cout << setw(ancho) << textoConexion(conexion, ponderado);
         }
 
         cout << '\n';
     }
 }
 
-void mostrarRepresentacionMatematica(const vector<vector<int>>& matriz,
+void mostrarRepresentacionMatematica(const vector<vector<Conexion>>& matriz,
                                      const vector<string>& nombres,
-                                     TipoGrafo tipo) {
+                                     TipoGrafo tipo, bool ponderado) {
+    cout << (tipo == TipoGrafo::Dirigido ? "\nG = (V, A)\n" : "\nG = (V, E)\n");
     cout << "\nV = {";
 
     for (int i = 0; i < static_cast<int>(nombres.size()); i++) {
@@ -285,7 +412,7 @@ void mostrarRepresentacionMatematica(const vector<vector<int>>& matriz,
         int inicio = tipo == TipoGrafo::Dirigido ? 0 : i + 1;
 
         for (int j = inicio; j < static_cast<int>(matriz.size()); j++) {
-            if (matriz[i][j] == 0) {
+            if (!matriz[i][j].existe) {
                 continue;
             }
 
@@ -294,7 +421,14 @@ void mostrarRepresentacionMatematica(const vector<vector<int>>& matriz,
             }
 
             if (tipo == TipoGrafo::Dirigido) {
-                cout << '<' << quoted(nombres[i]) << ',' << quoted(nombres[j]) << '>';
+                cout << '<' << quoted(nombres[i]) << ',' << quoted(nombres[j]);
+                if (ponderado) {
+                    cout << ',' << formatearPeso(matriz[i][j].peso);
+                }
+                cout << '>';
+            } else if (ponderado) {
+                cout << '(' << quoted(nombres[i]) << ',' << quoted(nombres[j])
+                     << ',' << formatearPeso(matriz[i][j].peso) << ')';
             } else {
                 cout << '{' << quoted(nombres[i]) << ',' << quoted(nombres[j]) << '}';
             }
@@ -345,18 +479,18 @@ void imprimirNodosEncontrados(const vector<string>& nombres,
 }
 
 void mostrarAdyacentes(int indice,
-                       const vector<vector<int>>& matriz,
+                       const vector<vector<Conexion>>& matriz,
                        const vector<string>& nombres,
                        TipoGrafo tipo) {
     vector<int> salientes;
     vector<int> entrantes;
 
     for (int j = 0; j < static_cast<int>(matriz.size()); j++) {
-        if (matriz[indice][j] == 1) {
+        if (matriz[indice][j].existe) {
             salientes.push_back(j);
         }
 
-        if (tipo == TipoGrafo::Dirigido && matriz[j][indice] == 1) {
+        if (tipo == TipoGrafo::Dirigido && matriz[j][indice].existe) {
             entrantes.push_back(j);
         }
     }
@@ -364,7 +498,10 @@ void mostrarAdyacentes(int indice,
     if (tipo == TipoGrafo::NoDirigido) {
         cout << "Adyacentes de " << nombres[indice] << ": ";
         imprimirNodosEncontrados(nombres, salientes);
-        cout << '\n';
+        cout << "\nGrado: " << salientes.size() << '\n';
+        if (salientes.empty()) {
+            cout << "El nodo " << quoted(nombres[indice]) << " es un nodo aislado.\n";
+        }
         return;
     }
 
@@ -372,7 +509,11 @@ void mostrarAdyacentes(int indice,
     imprimirNodosEncontrados(nombres, salientes);
     cout << "\nPredecesores de " << nombres[indice] << ": ";
     imprimirNodosEncontrados(nombres, entrantes);
-    cout << '\n';
+    cout << "\nGrado de salida: " << salientes.size();
+    cout << "\nGrado de entrada: " << entrantes.size() << '\n';
+    if (salientes.empty() && entrantes.empty()) {
+        cout << "El nodo " << quoted(nombres[indice]) << " es un nodo aislado.\n";
+    }
 }
 
 vector<int> pedirSecuenciaNodos(const vector<string>& nombres) {
@@ -389,13 +530,13 @@ vector<int> pedirSecuenciaNodos(const vector<string>& nombres) {
 }
 
 bool esCamino(const vector<int>& secuencia,
-              const vector<vector<int>>& matriz) {
+              const vector<vector<Conexion>>& matriz) {
     if (secuencia.empty()) {
         return false;
     }
 
     for (int i = 0; i + 1 < static_cast<int>(secuencia.size()); i++) {
-        if (matriz[secuencia[i]][secuencia[i + 1]] == 0) {
+        if (!matriz[secuencia[i]][secuencia[i + 1]].existe) {
             return false;
         }
     }
@@ -439,7 +580,7 @@ bool tieneAristasDiferentes(const vector<int>& secuencia) {
 }
 
 bool esCiclo(const vector<int>& secuencia,
-             const vector<vector<int>>& matriz,
+             const vector<vector<Conexion>>& matriz,
              TipoGrafo tipo) {
     if (secuencia.size() < 3 || secuencia.front() != secuencia.back() ||
         !esCamino(secuencia, matriz)) {
@@ -450,8 +591,8 @@ bool esCiclo(const vector<int>& secuencia,
 }
 
 void analizarSecuencia(const vector<int>& secuencia,
-                       const vector<vector<int>>& matriz,
-                       TipoGrafo tipo) {
+                       const vector<vector<Conexion>>& matriz,
+                       TipoGrafo tipo, bool ponderado) {
     if (!esCamino(secuencia, matriz)) {
         cout << "La secuencia no es un camino.\n";
         return;
@@ -464,6 +605,14 @@ void analizarSecuencia(const vector<int>& secuencia,
     }
 
     cout << ". Longitud: " << secuencia.size() - 1 << " aristas.\n";
+
+    if (ponderado) {
+        double costo = 0;
+        for (int i = 0; i + 1 < static_cast<int>(secuencia.size()); i++) {
+            costo += matriz[secuencia[i]][secuencia[i + 1]].peso;
+        }
+        cout << "Costo total: " << formatearPeso(costo) << '\n';
+    }
 
     if (esCiclo(secuencia, matriz, tipo)) {
         cout << "Tambien forma un ciclo";
@@ -478,9 +627,9 @@ void analizarSecuencia(const vector<int>& secuencia,
     }
 }
 
-bool generarArchivoDOT(const vector<vector<int>>& matriz,
+bool generarArchivoDOT(const vector<vector<Conexion>>& matriz,
                        const vector<string>& nombres,
-                       TipoGrafo tipo,
+                       TipoGrafo tipo, bool ponderado,
                        const string& nombreArchivo) {
     ofstream archivo(nombreArchivo);
 
@@ -504,8 +653,12 @@ bool generarArchivoDOT(const vector<vector<int>>& matriz,
         int inicio = dirigido ? 0 : i + 1;
 
         for (int j = inicio; j < static_cast<int>(matriz.size()); j++) {
-            if (matriz[i][j] == 1) {
-                archivo << "    n" << i << conector << "n" << j << ";\n";
+            if (matriz[i][j].existe) {
+                archivo << "    n" << i << conector << "n" << j;
+                if (ponderado) {
+                    archivo << " [label=" << quoted(formatearPeso(matriz[i][j].peso)) << ']';
+                }
+                archivo << ";\n";
             }
         }
     }
@@ -533,23 +686,24 @@ int main() {
     pedirNombresNodos(nombresNodos, cantidadNodos);
 
     TipoGrafo tipo = pedirTipoGrafo();
-    vector<vector<int>> matrizAdyacencia(
-        cantidadNodos, vector<int>(cantidadNodos, 0));
+    bool ponderado = pedirPonderacion();
+    vector<vector<Conexion>> matrizAdyacencia(
+        cantidadNodos, vector<Conexion>(cantidadNodos));
 
     string errorMatriz;
     bool matrizValida;
 
     do {
-        ingresarMatriz(matrizAdyacencia, nombresNodos, tipo);
-        matrizValida = validarMatriz(matrizAdyacencia, nombresNodos, tipo, errorMatriz);
+        ingresarMatriz(matrizAdyacencia, nombresNodos, tipo, ponderado);
+        matrizValida = validarMatriz(matrizAdyacencia, nombresNodos, tipo, ponderado, errorMatriz);
 
         if (!matrizValida) {
             cout << errorMatriz << "\nVuelva a ingresar la matriz.\n";
         }
     } while (!matrizValida);
 
-    mostrarResumen(nombresNodos, tipo);
-    imprimirMatriz(matrizAdyacencia, nombresNodos);
+    mostrarResumen(nombresNodos, tipo, ponderado);
+    imprimirMatriz(matrizAdyacencia, nombresNodos, ponderado);
 
     int opcion;
 
@@ -559,12 +713,12 @@ int main() {
 
         switch (opcion) {
             case 1:
-                imprimirMatriz(matrizAdyacencia, nombresNodos);
+                imprimirMatriz(matrizAdyacencia, nombresNodos, ponderado);
                 break;
 
             case 2:
                 mostrarRepresentacionMatematica(
-                    matrizAdyacencia, nombresNodos, tipo);
+                    matrizAdyacencia, nombresNodos, tipo, ponderado);
                 break;
 
             case 3: {
@@ -576,13 +730,13 @@ int main() {
 
             case 4: {
                 vector<int> secuencia = pedirSecuenciaNodos(nombresNodos);
-                analizarSecuencia(secuencia, matrizAdyacencia, tipo);
+                analizarSecuencia(secuencia, matrizAdyacencia, tipo, ponderado);
                 break;
             }
 
             case 5:
                 if (generarArchivoDOT(
-                        matrizAdyacencia, nombresNodos, tipo, "grafo.dot")) {
+                        matrizAdyacencia, nombresNodos, tipo, ponderado, "grafo.dot")) {
                     cout << "Archivo grafo.dot generado correctamente.\n";
                     cout << "Puede convertirlo con: "
                          << "dot -Tpng grafo.dot -o grafo.png\n";

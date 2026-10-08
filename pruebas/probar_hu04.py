@@ -9,7 +9,7 @@ from probar_hu02 import ejecutar
 def probar(executable):
     ejecutar(
         executable,
-        ["2", "alpha", "Beta", "1", "1", "texto", "-1", "0", "1",
+        ["2", "alpha", "Beta", "1", "1", "1", "texto", "-1", "0", "1",
          "1", "0", "2", "0"],
         ['Se detecto un lazo en el nodo "alpha"',
          'Se detecto un lazo en el nodo "Beta"',
@@ -21,7 +21,7 @@ def probar(executable):
 
     ejecutar(
         executable,
-        ["2", "inicio", "fin", "2", "1", "0", "1", "0", "1", "0",
+        ["2", "inicio", "fin", "2", "1", "1", "0", "1", "0", "1", "0",
          "2", "3", "inicio", "0"],
         ['Se detecto un lazo en el nodo "inicio"',
          'Se detecto un lazo en el nodo "fin"',
@@ -33,14 +33,14 @@ def probar(executable):
 
     ejecutar(
         executable,
-        ["3", "A", "B", "C", "1", "0", "1", "0", "0", "1", "0", "1", "0"],
+        ["3", "A", "B", "C", "1", "1", "0", "1", "0", "0", "1", "0", "1", "0"],
         ["     A  B  C\n  A  0  1  0\n  B  1  0  1\n  C  0  1  0\n",
          "Programa finalizado."],
     )
     print("OK: simetria automatica al capturar el triangulo superior.")
 
     ejecutar(
-        executable, ["2", "A", "B", "1", "1"],
+        executable, ["2", "A", "B", "1", "1", "1"],
         ['Se detecto un lazo en el nodo "A"', "Entrada finalizada. Programa cerrado."],
         codigo=1,
     )

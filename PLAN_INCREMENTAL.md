@@ -1,11 +1,11 @@
 # Plan incremental según las historias de usuario
 
-Este documento actualiza el plan a partir de `Historias de usuario.md`, revisado el 7 de octubre de 2026. La implementación se entrega por partes: una parte terminada y revisable por turno para poder hacer un commit y un push con calma.
+Este documento actualiza el plan a partir de `Historias de usuario.md`, revisado el 7 de octubre de 2026. La implementación se entrega por bloques revisables para poder hacer un commit y un push con calma. Por petición del usuario de aprovechar la ventana restante, las partes 3 y 4 se agruparon en una entrega; no se avanzó al Lab 4.
 
 ## Forma de programar y entregar
 
 - C++ procedural, funciones descriptivas en español y biblioteca estándar.
-- Código entendible, sin clases ni abstracciones innecesarias.
+- Código entendible, sin clases con lógica ni abstracciones innecesarias. `Conexion` es un registro de dos datos, sin métodos; las operaciones siguen en funciones independientes.
 - Comentarios breves para explicar decisiones que no sean evidentes.
 - Una entrega incluye el cambio funcional, su explicación y pruebas acordes al cambio.
 - Los commits y el push los hace el usuario. No se modificará el respaldo `algoritmo_previo.cpp`.
@@ -17,9 +17,9 @@ Este documento actualiza el plan a partir de `Historias de usuario.md`, revisado
 | Parte | Historias | Cambio verificable | Estado |
 | --- | --- | --- | --- |
 | 1 | HU-02 y adaptación de sus consumidores | Mínimo de dos nodos; identificadores personalizados y únicos; consultas, matriz y DOT compatibles. | Implementada; prueba de ejecución pendiente de compilador |
-| 2 | HU-04 | Validar todas las dimensiones antes de acceder a celdas; mensajes de inconsistencias; detectar lazos al capturar y pedir corregirlos. | Implementada para grafos no ponderados; ejecución pendiente de compilador |
-| 3 | HU-01, HU-03, HU-05 | Selección ponderado/no ponderado; captura de pesos y ausencia de conexión; representación matemática completa. | Pendiente |
-| 4 | HU-07 | Mostrar grados, grados de entrada/salida y aviso explícito de nodo aislado. | Pendiente |
+| 2 | HU-04 | Validar todas las dimensiones antes de acceder a celdas; mensajes de inconsistencias; detectar lazos al capturar y pedir corregirlos. | Implementada y adaptada a pesos en parte 3; ejecución pendiente de compilador |
+| 3 | HU-01, HU-03, HU-05 | Selección ponderado/no ponderado; captura de pesos y ausencia de conexión; representación matemática completa. | Implementada en consola y DOT; renderizado de HU-01 pendiente con HU-06; ejecución pendiente de compilador |
+| 4 | HU-07 | Mostrar grados, grados de entrada/salida y aviso explícito de nodo aislado. | Implementada; ejecución pendiente de compilador |
 | 5 | HU-08 | Buscar y enumerar caminos simples entre origen y destino; secuencia, longitud y costo; tratar origen igual a destino. | Pendiente |
 | 6 | HU-09 | Detectar automáticamente ciclos en todo el grafo y mostrar al menos uno; cubrir componentes desconectadas. | Pendiente |
 | 7 | Arquitectura híbrida, base para HU-06 | Separar entrada/salida de la lógica; definir comunicación C++/Python para transferir el grafo y errores. | Pendiente |
@@ -46,8 +46,8 @@ Cada parte se revisa antes de continuar. El estado de una historia con varios cr
 
 ## Decisiones por cerrar antes de las partes correspondientes
 
-1. **Lazos (resuelto en la parte 2):** se conserva la regla de grafos simples. Se captura la diagonal, se detecta e informa el lazo si se escribe `1` y se solicita corregir a `0`. No se incorporan lazos al grafo.
-2. **Pesos (parte 3):** definir si se aceptan decimales y su rango. La ausencia de arista debe distinguirse del peso cero; se propone `x` al capturar, con una representación interna separada.
+1. **Lazos (resuelto en partes 2 y 3):** se conserva la regla sin lazos. En modo binario se informa un `1` diagonal y se pide `0`. En modo ponderado, cualquier peso diagonal, incluido cero, se informa como lazo y se pide `x`.
+2. **Pesos (resuelto en parte 3):** `double` finito entre ±1000000000; acepta decimales con punto y notación científica. `x`/`X` representa ausencia; cero es un peso válido. Un registro `Conexion` mantiene separados existencia y costo. Es una decisión práctica de captura, no un límite impuesto por las historias.
 3. **Enumeración (parte 5):** se propone enumerar caminos simples, porque permitir vueltas repetidas en ciclos puede producir infinitos recorridos. No se truncarán resultados silenciosamente; cualquier límite debe indicarse.
 4. **Comparación (parte 12):** proponer al equipo validar igual costo mínimo y rutas válidas. Dos algoritmos pueden devolver rutas distintas con el mismo costo. Exigir una ruta idéntica requiere acordar el desempate.
 
@@ -143,4 +143,55 @@ git commit -m "Implementar HU-04: validar matriz y detectar lazos"
 git push
 ```
 
-El siguiente bloque será la parte 3: selección y representación de grafos ponderados.
+Las partes 3 y 4 se implementaron en la entrega siguiente, descrita abajo. Las instrucciones anteriores se conservan como historial de cada bloque.
+
+## Partes 3 y 4: pesos, grados y aislamiento
+
+### Alcance implementado
+
+- Elegir dirección y ponderación de forma independiente, manteniendo modo binario `0/1`.
+- Capturar pesos positivos, negativos y cero, con `x` para ausencia.
+- Usar `Conexion { existe, peso }` como celda. Sigue siendo programación procedural, sin una clase `Grafo` ni dependencias nuevas.
+- Validar dimensiones antes de consultar las celdas, indicadores binarios, pesos finitos dentro del rango, coherencia de la ausencia y simetría tanto de existencia como de peso.
+- Rechazar lazos ponderados incluso cuando su costo es cero; permitir corregir solo el dato incorrecto.
+- Mostrar matriz con nombres y ancho ajustado también a los pesos, conjuntos formales con tuplas ponderadas y etiquetas de pesos en DOT.
+- Conservar consultas y verificación manual de secuencias para los cuatro tipos. Las conexiones de costo cero cuentan como aristas; se informa costo acumulado en secuencias ponderadas válidas.
+- Contar grado no dirigido y grados de entrada/salida en dirigido. Un nodo dirigido es aislado solo si ambos grados son cero. El grado cuenta conexiones, no suma sus pesos.
+
+Los límites actuales son 2–26 nodos, pesos entre ±mil millones y secuencias manuales de 1–100 nodos. La suma de una secuencia no desborda con estos límites; `double` sigue teniendo redondeos y se presentan hasta 15 cifras significativas. No se añadieron búsquedas de caminos, detección automática de ciclos, interfaz Python ni rutas mínimas.
+
+HU-03 usa la opción binaria permitida por la historia; no se aceptan `T/F`. HU-01 aún depende del renderizado de HU-06 para su criterio gráfico. Exportar DOT no equivale a dibujar con Python. Ninguna historia se considera verificada en ejecución hasta correr las pruebas C++.
+
+### Comprobaciones y pruebas
+
+```powershell
+g++ -std=c++17 -Wall -Wextra -pedantic algoritmo.cpp -o algoritmo.exe
+python pruebas/probar_hu02.py .\algoritmo.exe
+python pruebas/probar_hu04.py .\algoritmo.exe
+python pruebas/probar_ponderados.py .\algoritmo.exe
+python pruebas/probar_hu07.py .\algoritmo.exe
+g++ -std=c++17 -Wall -Wextra -pedantic -D_GLIBCXX_ASSERTIONS pruebas/validar_matriz.cpp -o prueba_matriz.exe
+.\prueba_matriz.exe
+g++ -std=c++17 -Wall -Wextra -pedantic -D_GLIBCXX_ASSERTIONS pruebas/validar_pesos.cpp -o prueba_pesos.exe
+.\prueba_pesos.exe
+```
+
+- Las pruebas previas se adaptaron a la nueva pregunta de ponderación; se conservan los 16 casos de integridad binaria.
+- Las pruebas nuevas de consola cubren cero frente a ausencia, negativos y decimales, tuplas, matriz alineada, DOT exacto, sentido de las aristas, costos, lazos, entradas inválidas, límites y fin de entrada.
+- Las pruebas de HU-07 cubren los cuatro tipos de grafo, nodos aislados, nodos con solo entradas o solo salidas, nombres inexistentes y grados independientes del peso.
+- Las pruebas directas de pesos cubren conversión, valores no finitos, desbordamiento y subdesbordamiento de conversión, simetría, integridad interna y caminos de costo cero.
+- Se debe compilar cada archivo C++ por separado. No incluir `algoritmo_previo.cpp`.
+
+Verificación local: revisión de diferencias y coherencia de consumidores, sintaxis y ayuda de los cuatro scripts Python. La compilación y ejecución contra el programa real siguen pendientes: no se encontró `g++`, `clang++` ni `cl` disponible. No se instalaron herramientas ni se reportan pruebas C++ como aprobadas.
+
+### Commit sugerido para esta entrega
+
+```powershell
+git diff --check
+git add algoritmo.cpp PLAN_LAB3.md PLAN_INCREMENTAL.md EXPLICACION_LAB3.md pruebas/probar_hu02.py pruebas/probar_hu04.py pruebas/validar_matriz.cpp pruebas/probar_ponderados.py pruebas/validar_pesos.cpp pruebas/probar_hu07.py
+git diff --cached --stat
+git commit -m "Agregar grafos ponderados y completar consulta de grados"
+git push
+```
+
+No se ejecutaron `git add`, commit ni push. El siguiente bloque es **parte 5: búsqueda y enumeración de caminos simples**, sin algoritmos de ruta mínima.
