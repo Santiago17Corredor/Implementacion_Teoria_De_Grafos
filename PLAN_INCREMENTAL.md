@@ -1,6 +1,6 @@
 # Plan incremental según las historias de usuario
 
-Este documento actualiza el plan a partir de `Historias de usuario.md`, revisado el 7 de octubre de 2026. La implementación se entrega por bloques revisables para poder hacer un commit y un push con calma. Por petición del usuario de aprovechar la ventana restante, las partes 3 y 4 se agruparon en una entrega; no se avanzó al Lab 4.
+Este documento actualiza el plan a partir de `Historias de usuario.md`, revisado el 8 de octubre de 2026. La implementación se entrega por bloques revisables para poder hacer un commit y un push con calma. Las partes 5 a 8 se agruparon para cerrar el alcance del Lab 3; no se avanzó al Lab 4.
 
 ## Forma de programar y entregar
 
@@ -18,12 +18,12 @@ Este documento actualiza el plan a partir de `Historias de usuario.md`, revisado
 | --- | --- | --- | --- |
 | 1 | HU-02 y adaptación de sus consumidores | Mínimo de dos nodos; identificadores personalizados y únicos; consultas, matriz y DOT compatibles. | Implementada; prueba de ejecución pendiente de compilador |
 | 2 | HU-04 | Validar todas las dimensiones antes de acceder a celdas; mensajes de inconsistencias; detectar lazos al capturar y pedir corregirlos. | Implementada y adaptada a pesos en parte 3; ejecución pendiente de compilador |
-| 3 | HU-01, HU-03, HU-05 | Selección ponderado/no ponderado; captura de pesos y ausencia de conexión; representación matemática completa. | Implementada en consola y DOT; renderizado de HU-01 pendiente con HU-06; ejecución pendiente de compilador |
+| 3 | HU-01, HU-03, HU-05 | Selección ponderado/no ponderado; captura de pesos y ausencia de conexión; representación matemática completa. | Implementada; renderizado Python añadido en parte 8; ejecución C++ pendiente de compilador |
 | 4 | HU-07 | Mostrar grados, grados de entrada/salida y aviso explícito de nodo aislado. | Implementada; ejecución pendiente de compilador |
-| 5 | HU-08 | Buscar y enumerar caminos simples entre origen y destino; secuencia, longitud y costo; tratar origen igual a destino. | Pendiente |
-| 6 | HU-09 | Detectar automáticamente ciclos en todo el grafo y mostrar al menos uno; cubrir componentes desconectadas. | Pendiente |
-| 7 | Arquitectura híbrida, base para HU-06 | Separar entrada/salida de la lógica; definir comunicación C++/Python para transferir el grafo y errores. | Pendiente |
-| 8 | HU-06 | Dibujar desde Python nombres, flechas y pesos; comprobar nodos aislados y legibilidad. | Pendiente |
+| 5 | HU-08 | Buscar y enumerar caminos simples entre origen y destino; secuencia, longitud y costo; tratar origen igual a destino. | Implementada; ejecución C++ pendiente de compilador |
+| 6 | HU-09 | Detectar automáticamente ciclos en todo el grafo y mostrar al menos uno; cubrir componentes desconectadas. | Implementada; ejecución C++ pendiente de compilador |
+| 7 | Arquitectura híbrida, base para HU-06 | Separar entrada/salida de la lógica; definir comunicación C++/Python para transferir el grafo y errores. | Base del Lab 3 implementada mediante `grafo.json`; `subprocess` pertenece al Lab 4 |
+| 8 | HU-06 | Dibujar desde Python nombres, flechas y pesos; comprobar nodos aislados y legibilidad. | Implementada y probada con Matplotlib |
 | 9 | HU-10 | Dijkstra propio en C++, pesos no negativos, reconstrucción de ruta y destino inalcanzable. | Posterior: Lab 4 |
 | 10 | HU-11 | Bellman-Ford propio, iteraciones requeridas, ruta y detección de ciclos negativos alcanzables. | Posterior: Lab 4 |
 | 11 | HU-12 y arquitectura híbrida | Completar `subprocess`, JSON, timeout y códigos de retorno; resaltar rutas y presentar costo/algoritmo en Python. | Posterior: Lab 4 |
@@ -48,7 +48,7 @@ Cada parte se revisa antes de continuar. El estado de una historia con varios cr
 
 1. **Lazos (resuelto en partes 2 y 3):** se conserva la regla sin lazos. En modo binario se informa un `1` diagonal y se pide `0`. En modo ponderado, cualquier peso diagonal, incluido cero, se informa como lazo y se pide `x`.
 2. **Pesos (resuelto en parte 3):** `double` finito entre ±1000000000; acepta decimales con punto y notación científica. `x`/`X` representa ausencia; cero es un peso válido. Un registro `Conexion` mantiene separados existencia y costo. Es una decisión práctica de captura, no un límite impuesto por las historias.
-3. **Enumeración (parte 5):** se propone enumerar caminos simples, porque permitir vueltas repetidas en ciclos puede producir infinitos recorridos. No se truncarán resultados silenciosamente; cualquier límite debe indicarse.
+3. **Enumeración (resuelto en parte 5):** se enumeran caminos simples mediante DFS con retroceso, porque permitir vueltas repetidas en ciclos produciría infinitos recorridos. No existe un límite oculto ni se truncan resultados; en grafos densos la cantidad de caminos puede crecer de forma factorial.
 4. **Comparación (parte 12):** proponer al equipo validar igual costo mínimo y rutas válidas. Dos algoritmos pueden devolver rutas distintas con el mismo costo. Exigir una ruta idéntica requiere acordar el desempate.
 
 ## Parte 1: contenido y verificación
@@ -158,9 +158,9 @@ Las partes 3 y 4 se implementaron en la entrega siguiente, descrita abajo. Las i
 - Conservar consultas y verificación manual de secuencias para los cuatro tipos. Las conexiones de costo cero cuentan como aristas; se informa costo acumulado en secuencias ponderadas válidas.
 - Contar grado no dirigido y grados de entrada/salida en dirigido. Un nodo dirigido es aislado solo si ambos grados son cero. El grado cuenta conexiones, no suma sus pesos.
 
-Los límites actuales son 2–26 nodos, pesos entre ±mil millones y secuencias manuales de 1–100 nodos. La suma de una secuencia no desborda con estos límites; `double` sigue teniendo redondeos y se presentan hasta 15 cifras significativas. No se añadieron búsquedas de caminos, detección automática de ciclos, interfaz Python ni rutas mínimas.
+En el corte de las partes 3 y 4, los límites eran 2–26 nodos, pesos entre ±mil millones y secuencias manuales de 1–100 nodos. La suma de una secuencia no desborda con estos límites; `double` sigue teniendo redondeos y se presentan hasta 15 cifras significativas. Las búsquedas y la interfaz se añadieron en las partes 5–8; las rutas mínimas permanecen fuera del Lab 3.
 
-HU-03 usa la opción binaria permitida por la historia; no se aceptan `T/F`. HU-01 aún depende del renderizado de HU-06 para su criterio gráfico. Exportar DOT no equivale a dibujar con Python. Ninguna historia se considera verificada en ejecución hasta correr las pruebas C++.
+HU-03 usa la opción binaria permitida por la historia; no se aceptan `T/F`. En ese corte, HU-01 aún dependía del renderizado de HU-06 para su criterio gráfico; quedó cubierto en la parte 8. Ninguna historia dependiente del C++ se considera verificada en ejecución hasta correr sus pruebas compiladas.
 
 ### Comprobaciones y pruebas
 
@@ -194,4 +194,74 @@ git commit -m "Agregar grafos ponderados y completar consulta de grados"
 git push
 ```
 
-No se ejecutaron `git add`, commit ni push. El siguiente bloque es **parte 5: búsqueda y enumeración de caminos simples**, sin algoritmos de ruta mínima.
+No se ejecutaron `git add`, commit ni push. Las partes siguientes cierran el Lab 3 sin algoritmos de ruta mínima.
+
+## Partes 5 y 6: caminos y ciclos automáticos
+
+### Alcance implementado
+
+- La opción 6 solicita un origen y un destino existentes y ejecuta DFS con retroceso.
+- Enumera todos los caminos **simples** en orden determinista según los índices de los nodos. Cada resultado muestra secuencia, longitud, clasificación y costo cuando corresponde.
+- Si no existe recorrido, identifica por nombre ambos extremos y lo informa explícitamente.
+- Si origen y destino coinciden, busca ciclos simples que empiecen y terminen allí; no considera el recorrido vacío como camino cerrado.
+- En grafos no dirigidos, un ciclo y su recorrido inverso se muestran una sola vez. Regresar de inmediato por la misma arista no cuenta como ciclo.
+- La opción 7 inspecciona todos los componentes y muestra un ciclo testigo o informa que el grafo es acíclico.
+- La detección dirigida usa estados `no visitado / activo / terminado`; la no dirigida también ignora la arista hacia el padre. El ciclo testigo incluye nuevamente el primer nodo al final.
+
+La enumeración no es un algoritmo de ruta mínima y no ordena por costo. “Todos los caminos posibles” se interpreta como todos los caminos simples: aceptar vértices repetidos permitiría infinitos recorridos cuando existe un ciclo. No se impuso un tope silencioso; un grafo denso puede producir una cantidad factorial de resultados y tardar mucho aunque tenga solo 26 nodos.
+
+### Parte 7 y 8: intercambio y visualización Python
+
+- La opción 5 conserva `grafo.dot` y además genera `grafo.json` con dirección, ponderación, nombres y lista de aristas.
+- El JSON usa índices para las conexiones y conserva nombres UTF-8, caracteres escapados, nodos aislados, dirección y pesos cero o negativos.
+- `interfaz.py` valida el archivo antes de dibujarlo. Rechaza nombres repetidos, índices inexistentes, lazos, conexiones repetidas y pesos faltantes o no finitos.
+- Matplotlib dibuja todos los nodos en una distribución circular, flechas en dígrafos, curvas para arcos opuestos y etiquetas para pesos. Los nodos aislados permanecen visibles.
+- La ventana muestra los identificadores dentro de los nodos y el tipo del grafo. También puede guardar PNG, SVG o PDF sin abrir ventana.
+- Se usa Matplotlib directamente; NetworkX no es necesario. `requirements.txt` declara la dependencia reproducible.
+
+La comunicación de este laboratorio queda desacoplada mediante archivo JSON. La arquitectura de la actividad siguiente exige además que Python invoque el motor de rutas C++ mediante `subprocess` y reciba un único JSON de resultados; eso permanece correctamente en las partes 9–12 del Lab 4.
+
+### Ejecución y pruebas
+
+```powershell
+g++ -std=c++17 -Wall -Wextra -pedantic algoritmo.cpp -o algoritmo.exe
+python pruebas/probar_hu02.py .\algoritmo.exe
+python pruebas/probar_hu04.py .\algoritmo.exe
+python pruebas/probar_ponderados.py .\algoritmo.exe
+python pruebas/probar_hu07.py .\algoritmo.exe
+python pruebas/probar_caminos_ciclos.py .\algoritmo.exe
+g++ -std=c++17 -Wall -Wextra -pedantic -D_GLIBCXX_ASSERTIONS pruebas/validar_matriz.cpp -o prueba_matriz.exe
+.\prueba_matriz.exe
+g++ -std=c++17 -Wall -Wextra -pedantic -D_GLIBCXX_ASSERTIONS pruebas/validar_pesos.cpp -o prueba_pesos.exe
+.\prueba_pesos.exe
+g++ -std=c++17 -Wall -Wextra -pedantic -D_GLIBCXX_ASSERTIONS pruebas/validar_recorridos.cpp -o prueba_recorridos.exe
+.\prueba_recorridos.exe
+python pruebas/probar_interfaz.py
+```
+
+La prueba de la interfaz se ejecutó correctamente en este equipo: cubre ambos tipos de grafo, pesos, arcos opuestos, nodo aislado, UTF-8, distribución de 26 nodos, generación real de PNG y diez validaciones de datos. También se comprobó la sintaxis y la ayuda de todos los scripts Python. Las pruebas que dependen de `algoritmo.exe` y las unidades C++ siguen pendientes porque no hay `g++`, `clang++` ni `cl` disponible.
+
+Uso normal después de crear el grafo y escoger la opción 5:
+
+```powershell
+python interfaz.py grafo.json
+python interfaz.py grafo.json --guardar grafo.png --sin-mostrar
+```
+
+Si Matplotlib falta en otro equipo:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+### Commit sugerido para cerrar el Lab 3
+
+```powershell
+git diff --check
+git add .gitignore algoritmo.cpp interfaz.py requirements.txt PLAN_LAB3.md PLAN_INCREMENTAL.md EXPLICACION_LAB3.md pruebas/probar_hu02.py pruebas/probar_ponderados.py pruebas/probar_caminos_ciclos.py pruebas/validar_recorridos.cpp pruebas/probar_interfaz.py
+git diff --cached --stat
+git commit -m "Completar caminos ciclos y visualizacion del Lab 3"
+git push
+```
+
+No se ejecutaron `git add`, commit ni push. Para declarar el Lab 3 completamente verificado solo falta compilar el C++ y correr la batería indicada. El código del Lab 4 continúa fuera de este corte.

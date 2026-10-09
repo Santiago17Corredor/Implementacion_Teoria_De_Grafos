@@ -6,8 +6,9 @@ import tempfile
 from pathlib import Path
 
 
-def ejecutar(executable, datos, esperados, codigo=0, dot_esperado=None, prohibidos=()):
-    with tempfile.TemporaryDirectory(prefix="lab3_hu02_") as carpeta:
+def ejecutar(executable, datos, esperados, codigo=0, dot_esperado=None,
+             json_esperado=None, prohibidos=()):
+    with tempfile.TemporaryDirectory(prefix="lab3_hu02_", dir=Path.cwd()) as carpeta:
         resultado = subprocess.run(
             [str(executable)],
             input="\n".join(datos) + ("\n" if datos else ""),
@@ -37,6 +38,11 @@ def ejecutar(executable, datos, esperados, codigo=0, dot_esperado=None, prohibid
             contenido = (Path(carpeta) / "grafo.dot").read_text(encoding="utf-8")
             if contenido != dot_esperado:
                 raise AssertionError(f"DOT inesperado:\n{contenido}")
+
+        if json_esperado is not None:
+            contenido = (Path(carpeta) / "grafo.json").read_text(encoding="utf-8")
+            if contenido != json_esperado:
+                raise AssertionError(f"JSON inesperado:\n{contenido}")
 
 
 def probar(executable):
@@ -94,6 +100,11 @@ def probar(executable):
             '    n2 [label="Bogotá"];\n'
             '    n0 -- n1;\n}\n'
         ),
+        json_esperado=(
+            '{\n  "dirigido": false,\n  "ponderado": false,\n'
+            '  "nodos": ["A \\"B\\"", "C:\\\\ruta", "Bogotá"],\n'
+            '  "aristas": [\n    {"origen": 0, "destino": 1}\n  ]\n}\n'
+        ),
     )
     print("OK: DOT con comillas, barras invertidas, acentos y nodo aislado.")
 
@@ -105,6 +116,11 @@ def probar(executable):
             'digraph G {\n    rankdir=LR;\n    node [shape=circle];\n'
             '    n0 [label="graph"];\n    n1 [label="x,y"];\n'
             '    n0 -> n1;\n}\n'
+        ),
+        json_esperado=(
+            '{\n  "dirigido": true,\n  "ponderado": false,\n'
+            '  "nodos": ["graph", "x,y"],\n'
+            '  "aristas": [\n    {"origen": 0, "destino": 1}\n  ]\n}\n'
         ),
     )
     print("OK: DOT dirigido con palabras reservadas y puntuacion.")

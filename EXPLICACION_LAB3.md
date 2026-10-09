@@ -1,6 +1,6 @@
 # Explicación completa - Laboratorio 3: Teoría de grafos
 
-Actualizado hasta las partes 3 (pesos) y 4 (grados y aislamiento), el 7 de octubre de 2026. El seguimiento está en [PLAN_INCREMENTAL.md](PLAN_INCREMENTAL.md). El código de las partes 1 a 4 está implementado; su compilación y ejecución siguen pendientes en un entorno con compilador C++. No se considera completa HU-01 en lo relativo al renderizado Python, que se incorpora con HU-06.
+Actualizado hasta las partes 5 a 8 (caminos, ciclos y visualización), el 8 de octubre de 2026. El seguimiento está en [PLAN_INCREMENTAL.md](PLAN_INCREMENTAL.md). El alcance funcional del Lab 3 está implementado; la interfaz Python fue ejecutada y verificada, mientras la compilación y ejecución del C++ siguen pendientes en un equipo con compilador. Dijkstra, Bellman-Ford y la integración por `subprocess` corresponden al Lab 4 y no se mezclaron aquí.
 
 ## 1. ¿Qué se desarrolló?
 
@@ -19,7 +19,10 @@ El programa permite:
 - Comprobar si una secuencia de nodos es un camino.
 - Comprobar si una secuencia forma un ciclo.
 - Sumar el costo de una secuencia válida si el grafo es ponderado.
-- Generar un archivo DOT para representar gráficamente el grafo con Graphviz.
+- Enumerar todos los caminos simples entre dos nodos.
+- Buscar ciclos automáticamente en todos los componentes.
+- Generar archivos DOT y JSON.
+- Dibujar el grafo desde Python con nombres, flechas, pesos y nodos aislados.
 
 El programa implementa solamente la Guía 3. No incluye rutas más cortas, Dijkstra, Bellman-Ford ni requisitos de la Guía 4.
 
@@ -667,7 +670,38 @@ O, si falta una conexión:
 La secuencia no es un camino.
 ```
 
-Si tiene pesos y la secuencia es válida, suma el `.peso` de cada conexión consecutiva y muestra `Costo total`. La longitud sigue contando aristas: no se confunde con el costo. Una secuencia de un solo nodo tiene longitud y costo cero. Esto analiza únicamente la secuencia ingresada; todavía no busca caminos ni calcula una ruta mínima.
+Si tiene pesos y la secuencia es válida, suma el `.peso` de cada conexión consecutiva y muestra `Costo total`. La longitud sigue contando aristas: no se confunde con el costo. Una secuencia de un solo nodo tiene longitud y costo cero. Esta operación analiza la secuencia ingresada; la opción 6 realiza la búsqueda automática, pero tampoco calcula una ruta mínima.
+
+### Búsqueda automática de caminos simples
+
+Las funciones `explorarCaminosSimples` y `buscarCaminosSimples` implementan DFS con retroceso. Se marca el nodo actual, se intenta cada vecino no visitado y se desmarca al regresar. Así, una rama no impide explorar otra.
+
+```text
+A -> B -> D
+A -> C -> D
+```
+
+Un camino se guarda al alcanzar el destino. No se continúa desde allí, porque cualquier extensión dejaría de ser un recorrido de origen a destino. La opción 6 muestra cada secuencia, el número de aristas, que es simple y su costo si tiene pesos. Si no encuentra ninguna, identifica ambos nodos en el mensaje.
+
+Solamente se enumeran caminos simples, sin repetir vértices. Si se permitieran repeticiones, cualquier ciclo podría recorrerse una cantidad arbitraria de veces y existirían infinitos recorridos. No se aplica un límite oculto ni se omiten resultados; por ello, un grafo denso puede producir factorialmente muchos caminos y tardar bastante.
+
+### Origen igual al destino
+
+Cuando ambos nombres son iguales, el programa no devuelve el recorrido vacío. `explorarCiclosDesdeOrigen` busca caminos cerrados simples que salgan del nodo y vuelvan a él. En grafos no dirigidos descarta la orientación inversa duplicada mediante los índices del segundo y penúltimo vértice; `A-B-C-A` y `A-C-B-A` representan el mismo ciclo. Un recorrido `A-B-A` tampoco se acepta en un grafo no dirigido porque usa dos veces la misma arista. En un dígrafo, `A->B->A` sí puede ser un ciclo de dos arcos diferentes.
+
+### Detección automática global de ciclos
+
+`buscarUnCiclo` inicia una búsqueda desde cada nodo todavía no visitado, por lo que también inspecciona componentes desconectados. `buscarCicloDFS` emplea tres estados:
+
+- `0`: no visitado.
+- `1`: activo en la rama actual.
+- `2`: recorrido terminado.
+
+Encontrar una arista hacia un nodo activo permite reconstruir el ciclo desde la pila. En grafos no dirigidos se ignora la conexión inmediata hacia el padre para no confundir `A-B-A` con un ciclo. La opción 7 presenta un ciclo testigo, su longitud, clasificación y costo, o informa que el grafo es acíclico.
+
+### Funciones de presentación de recorridos
+
+`calcularCosto` suma los pesos de las conexiones consecutivas; en modo no ponderado su resultado interno coincidiría con la longitud, pero solo se imprime para grafos ponderados. `imprimirRecorrido` traduce índices a nombres y los separa con flechas. `mostrarCaminosEntre` y `mostrarDeteccionCiclos` reúnen la búsqueda y los mensajes de consola.
 
 ### `generarArchivoDOT`
 
@@ -698,11 +732,53 @@ graph G {
 
 Para un grafo dirigido utiliza `digraph` y el conector `->`.
 
-Si es ponderado, cada arista lleva una etiqueta, por ejemplo `n0 -- n1 [label="0"];`. Se conserva el peso cero y se omiten únicamente las ausencias. Esto prepara un DOT con pesos, pero no sustituye el renderizado Python pendiente de HU-06.
+Si es ponderado, cada arista lleva una etiqueta, por ejemplo `n0 -- n1 [label="0"];`. Se conserva el peso cero y se omiten únicamente las ausencias. DOT queda como formato adicional; la visualización de HU-06 se realiza en Python.
 
 Los identificadores internos `n0`, `n1`, etc. evitan conflictos con palabras reservadas o símbolos en los nombres. `quoted` escribe las etiquetas entre comillas y escapa comillas y barras invertidas. Al cerrar el archivo se comprueba si ocurrió un error de escritura.
 
 Los nodos se declaran aunque estén aislados. Esto garantiza que también aparezcan en la gráfica.
+
+### `escaparJSON` y `generarArchivoDatos`
+
+`escaparJSON` protege comillas, barras invertidas y caracteres especiales dentro de un nombre. `generarArchivoDatos` crea `grafo.json` con esta estructura:
+
+```json
+{
+  "dirigido": true,
+  "ponderado": true,
+  "nodos": ["A", "B", "C"],
+  "aristas": [
+    {"origen": 0, "destino": 1, "peso": 0},
+    {"origen": 1, "destino": 2, "peso": -2.5}
+  ]
+}
+```
+
+Los índices evitan ambigüedades con nombres arbitrarios. Una conexión no dirigida se escribe una sola vez. Los nodos se listan aparte, de modo que un aislado también llega a Python. El peso solo aparece en grafos ponderados.
+
+### `interfaz.py`
+
+La interfaz recibe `grafo.json`, comprueba la estructura y dibuja con Matplotlib. Antes de dibujar valida booleanos, mínimo de nodos, nombres únicos, índices, lazos, conexiones repetidas y pesos numéricos finitos.
+
+La distribución circular asigna una posición a cada nodo. Los dígrafos usan flechas; dos arcos opuestos se curvan en sentidos diferentes. Los pesos aparecen junto a sus conexiones, incluido cero. Cada nombre se escribe dentro de su nodo y los aislados se conservan porque las posiciones se crean a partir de la lista completa de nodos.
+
+Uso interactivo:
+
+```powershell
+python interfaz.py grafo.json
+```
+
+Guardar una evidencia sin abrir la ventana:
+
+```powershell
+python interfaz.py grafo.json --guardar grafo.png --sin-mostrar
+```
+
+También puede guardar SVG o PDF según la extensión. Si Matplotlib no está instalado:
+
+```powershell
+python -m pip install -r requirements.txt
+```
 
 ### `mostrarMenu`
 
@@ -713,7 +789,9 @@ Presenta las operaciones disponibles:
 2. Mostrar representación matemática
 3. Consultar nodos adyacentes
 4. Verificar camino o ciclo
-5. Generar archivo gráfico
+5. Generar archivos DOT y JSON para la gráfica
+6. Buscar todos los caminos entre dos nodos
+7. Detectar ciclos automáticamente
 0. Salir
 ```
 
@@ -934,13 +1012,16 @@ En la opción 2 aparecerá `E = {("A","B",0), ("B","C",-2.5)}`. En la opción 4,
 
 En la opción 3, consultar `B`: sus vecinos son `A, C` y su grado es `2`, no `-2.5`. Estos son resultados esperados para verificar cuando se compile el programa.
 
-## 9. Uso de Graphviz
+## 9. Visualización Python y alternativa Graphviz
 
 La opción 5 del menú crea:
 
 ```text
 grafo.dot
+grafo.json
 ```
+
+La opción principal es abrir `grafo.json` con `interfaz.py`, como se explicó arriba. `grafo.dot` se conserva como alternativa y evidencia textual.
 
 Si Graphviz está instalado, se convierte en PNG con:
 
@@ -960,7 +1041,7 @@ Para comprobar si Graphviz está instalado:
 dot -V
 ```
 
-La imagen generada se puede utilizar como evidencia en el informe.
+Las imágenes generadas con Python o Graphviz se pueden utilizar como evidencia en el informe.
 
 ## 10. Compilación y ejecución
 
@@ -976,6 +1057,12 @@ Para ejecutar:
 .\algoritmo.exe
 ```
 
+Después de escoger la opción 5:
+
+```powershell
+python interfaz.py grafo.json
+```
+
 Significado de las opciones:
 
 - `-std=c++17`: utiliza el estándar C++17.
@@ -986,7 +1073,7 @@ Significado de las opciones:
 
 ## 11. Casos de prueba recomendados
 
-Las pruebas anteriores de HU-02 y HU-04 se adaptaron a la selección de ponderación. `validar_matriz.cpp` conserva sus 16 casos binarios usando el registro `Conexion`. Las nuevas pruebas cubren pesos, costos de secuencias, DOT, errores numéricos, simetría, grados y aislamiento. Los scripts Python usan solo la biblioteca estándar y ejecutan la aplicación real en directorios temporales; todavía no son la interfaz gráfica de HU-06.
+Las pruebas de consola cubren nodos, matriz, pesos, grados, caminos, ciclos y los archivos DOT/JSON. Las unidades C++ llaman directamente a la implementación real. `probar_interfaz.py` valida y renderiza imágenes reales sin abrir ventanas.
 
 ```powershell
 g++ -std=c++17 -Wall -Wextra -pedantic algoritmo.cpp -o algoritmo.exe
@@ -994,15 +1081,19 @@ python pruebas/probar_hu02.py .\algoritmo.exe
 python pruebas/probar_hu04.py .\algoritmo.exe
 python pruebas/probar_ponderados.py .\algoritmo.exe
 python pruebas/probar_hu07.py .\algoritmo.exe
+python pruebas/probar_caminos_ciclos.py .\algoritmo.exe
 g++ -std=c++17 -Wall -Wextra -pedantic -D_GLIBCXX_ASSERTIONS pruebas/validar_matriz.cpp -o prueba_matriz.exe
 .\prueba_matriz.exe
 g++ -std=c++17 -Wall -Wextra -pedantic -D_GLIBCXX_ASSERTIONS pruebas/validar_pesos.cpp -o prueba_pesos.exe
 .\prueba_pesos.exe
+g++ -std=c++17 -Wall -Wextra -pedantic -D_GLIBCXX_ASSERTIONS pruebas/validar_recorridos.cpp -o prueba_recorridos.exe
+.\prueba_recorridos.exe
+python pruebas/probar_interfaz.py
 ```
 
 Compilar cada archivo C++ por separado. El archivo de pruebas incluye `algoritmo.cpp` y cambia el nombre de su `main` solo durante esa compilación, para probar la función verdadera sin duplicar su implementación. `-D_GLIBCXX_ASSERTIONS` activa comprobaciones adicionales al usar GCC/libstdc++ y ayuda a detectar accesos fuera de rango.
 
-Las pruebas funcionales no se han ejecutado en este entorno por falta de compilador. No confundir los resultados esperados de abajo con resultados ya observados.
+La prueba Python de la interfaz sí se ejecutó correctamente: verificó renderizado dirigido/no dirigido, pesos, nodo aislado, UTF-8, 26 posiciones y diez errores estructurales. Las pruebas funcionales que necesitan el ejecutable y las unidades C++ no se han ejecutado en este entorno por falta de compilador. No confundir sus resultados esperados con resultados ya observados.
 
 ### Prueba 1: entradas inválidas
 
@@ -1127,6 +1218,14 @@ Si la secuencia contiene `k` nodos, se revisan `k-1` conexiones:
 O(k)
 ```
 
+### Enumerar caminos simples
+
+La búsqueda explora combinaciones de vértices sin repetirlos. Su costo depende de cuántos caminos existan y, en el peor caso de un grafo denso, crece factorialmente. Guardar los resultados también requiere espacio proporcional al total de recorridos encontrados. Este costo es inevitable si se exige mostrar todos los caminos.
+
+### Detectar un ciclo
+
+Cada nodo se procesa una vez, pero al usar una matriz se revisa una fila completa para buscar sus vecinos. Por eso la detección cuesta `O(n²)` y utiliza `O(n)` para estados, pila y ciclo testigo.
+
 ## 13. Posibles preguntas durante la sustentación
 
 ### ¿Por qué utilizar una matriz de adyacencia?
@@ -1153,6 +1252,18 @@ Se consulta la matriz para verificar que cada par consecutivo de la secuencia es
 
 Primero debe ser un camino. Además, el primer nodo debe ser igual al último. En grafos no dirigidos no se permite repetir la misma arista.
 
+### ¿Por qué se buscan caminos simples?
+
+Porque repetir vértices permitiría dar vueltas indefinidamente alrededor de un ciclo, generando infinitos recorridos. Los caminos simples forman un conjunto finito y cumplen la exploración exhaustiva mediante retroceso.
+
+### ¿Cómo se evita el falso ciclo `A-B-A`?
+
+Durante la detección no dirigida se ignora la arista que regresa inmediatamente al padre. Durante la enumeración, `esCiclo` también exige que las aristas del recorrido no se repitan.
+
+### ¿La búsqueda automática calcula la ruta más corta?
+
+No. Enumera todos los caminos simples y muestra longitud/costo. Dijkstra y Bellman-Ford pertenecen al Lab 4.
+
 ### ¿Por qué no se usó POO?
 
 Porque el alcance actual se resuelve claramente mediante funciones y un solo conjunto de datos. Una clase sería útil si el programa administrara varios grafos o creciera considerablemente.
@@ -1165,18 +1276,23 @@ La referencia evita copiar el vector completo y `const` garantiza que la funció
 
 Porque permite representar grafos dirigidos y no dirigidos con poco código, y Graphviz se encarga de calcular automáticamente la posición de los nodos y dibujar las aristas.
 
+### ¿Para qué sirve `grafo.json`?
+
+Es un formato de intercambio independiente de la consola. C++ exporta el grafo y Python lo valida y dibuja sin tener que interpretar mensajes destinados al usuario.
+
 ## 14. Limitaciones conocidas
 
-Estas son las limitaciones de la versión actual. El plan incremental contempla búsqueda de caminos y visualización para cumplir las historias nuevas:
+Estas son las limitaciones de la versión actual:
 
 - Los nombres se ingresan uno por línea y distinguen mayúsculas de minúsculas.
 - El máximo es de 26 nodos.
 - No se permiten lazos.
 - Los pesos se limitan al intervalo de ±mil millones, con la precisión aproximada de `double`; la salida muestra hasta 15 cifras significativas.
-- No se buscan caminos automáticamente; se valida una secuencia propuesta por el usuario.
-- El programa genera DOT, pero necesita Graphviz para convertirlo en imagen.
-- Los datos no se guardan para otra ejecución.
-- No existe interfaz gráfica; se trabaja desde consola.
+- Enumerar todos los caminos puede tardar mucho y consumir memoria en grafos densos; no se ocultan ni truncan resultados.
+- La distribución gráfica es circular y no garantiza eliminar todos los cruces en grafos densos.
+- La ventana Python se inicia con un comando después de exportar; el `subprocess` automático pertenece a la arquitectura del Lab 4.
+- El JSON conserva el grafo, pero el programa C++ todavía no vuelve a cargarlo en otra ejecución.
+- No se calculan rutas mínimas ni métricas de Dijkstra/Bellman-Ford.
 
 ## 15. Evidencias recomendadas para el informe
 
@@ -1189,9 +1305,11 @@ Conviene tomar capturas de:
 5. Consulta de adyacentes.
 6. Camino válido.
 7. Camino inválido.
-8. Ciclo válido.
-9. Archivo DOT o imagen generada.
-10. Una validación rechazando un dato incorrecto.
+8. Enumeración de varios caminos y un caso sin camino.
+9. Ciclo detectado automáticamente y grafo acíclico.
+10. Ventana o imagen Python con flechas, pesos y nodo aislado.
+11. Archivos DOT/JSON generados.
+12. Una validación rechazando un dato incorrecto.
 
 Cada captura debe acompañarse con una explicación corta del resultado.
 
@@ -1222,7 +1340,10 @@ El informe puede organizarse así:
 - [ ] Se probó un nodo aislado.
 - [ ] Se comprobó un camino válido y uno inválido.
 - [ ] Se comprobó un ciclo válido.
+- [ ] Se enumeraron todos los caminos de un ejemplo conocido.
+- [ ] Se detectó un ciclo en un componente desconectado y se probó un grafo acíclico.
 - [ ] Se generó `grafo.dot`.
+- [ ] Se generó y validó `grafo.json`.
 - [ ] Se generó una imagen del grafo.
 - [ ] Se guardaron capturas de las pruebas.
 - [ ] El informe sigue el formato IEEE.
@@ -1234,6 +1355,9 @@ El informe puede organizarse así:
 
 ```text
 algoritmo.cpp          Programa actual del Laboratorio 3.
+interfaz.py            Validador y visualizador del grafo con Matplotlib.
+requirements.txt       Dependencia Python reproducible.
+.gitignore             Excluye ejecutables, cachés y gráficas generadas.
 PLAN_LAB3.md           Plan y etapas de desarrollo.
 EXPLICACION_LAB3.md    Explicación completa del programa.
 PLAN_INCREMENTAL.md   Entregas por historia de usuario.
@@ -1243,6 +1367,9 @@ pruebas/validar_matriz.cpp Pruebas directas de integridad de la matriz.
 pruebas/probar_ponderados.py Pruebas de consola, costos y DOT con pesos.
 pruebas/validar_pesos.cpp Pruebas directas de pesos, estructura y conexiones.
 pruebas/probar_hu07.py Pruebas de grados y nodos aislados.
+pruebas/probar_caminos_ciclos.py Pruebas funcionales de HU-08 y HU-09.
+pruebas/validar_recorridos.cpp Pruebas directas de recorridos y ciclos.
+pruebas/probar_interfaz.py Pruebas ejecutables del JSON y el renderizado.
 algoritmo_previo.cpp   Respaldo de la versión anterior.
 ```
 
@@ -1250,7 +1377,8 @@ Después de ejecutar la opción gráfica también puede aparecer:
 
 ```text
 grafo.dot              Descripción del grafo para Graphviz.
-grafo.png              Imagen generada con Graphviz.
+grafo.json             Datos que consume la interfaz Python.
+grafo.png              Imagen opcional generada con Python o Graphviz.
 ```
 
 ## 19. Checklist para hacer el push
@@ -1264,7 +1392,7 @@ git status
 Agregar únicamente los archivos que realmente se quieran publicar:
 
 ```powershell
-git add algoritmo.cpp PLAN_LAB3.md EXPLICACION_LAB3.md PLAN_INCREMENTAL.md pruebas/probar_hu02.py pruebas/probar_hu04.py pruebas/validar_matriz.cpp pruebas/probar_ponderados.py pruebas/validar_pesos.cpp pruebas/probar_hu07.py
+git add .gitignore algoritmo.cpp interfaz.py requirements.txt PLAN_LAB3.md EXPLICACION_LAB3.md PLAN_INCREMENTAL.md pruebas/probar_hu02.py pruebas/probar_ponderados.py pruebas/probar_caminos_ciclos.py pruebas/validar_recorridos.cpp pruebas/probar_interfaz.py
 ```
 
 El archivo `algoritmo_previo.cpp` es un respaldo. Se puede conservar localmente o incluirlo solamente si el equipo considera útil mostrar la evolución. No es necesario para ejecutar la versión final.
@@ -1272,7 +1400,7 @@ El archivo `algoritmo_previo.cpp` es un respaldo. Se puede conservar localmente 
 Crear el commit:
 
 ```powershell
-git commit -m "Agregar grafos ponderados y completar consulta de grados"
+git commit -m "Completar caminos ciclos y visualizacion del Lab 3"
 ```
 
 Finalmente:
@@ -1285,4 +1413,4 @@ Antes del `push`, es importante comprobar que no se estén agregando ejecutables
 
 ## 20. Resumen corto para explicar el proyecto
 
-El programa permite construir un grafo dirigido o no dirigido, con o sin pesos y sin lazos ni aristas paralelas. Cada celda de la matriz distingue la existencia de una conexión de su peso, por lo que admite costos cero y negativos. Valida los nodos y la matriz; permite mostrar la representación matemática, consultar vecinos y grados e identificar nodos aislados. Verifica caminos y ciclos a partir de secuencias ingresadas y suma su costo cuando corresponde. Exporta DOT con etiquetas de pesos para Graphviz. La solución sigue siendo procedural, con funciones y un registro sencillo. La búsqueda automática, la interfaz Python y las rutas mínimas todavía no están implementadas.
+El programa construye un grafo dirigido o no dirigido, con o sin pesos y sin lazos ni aristas paralelas. Cada celda distingue existencia y costo, por lo que admite pesos cero y negativos. Valida la matriz, muestra su forma matemática, consulta vecinos y grados, identifica nodos aislados, verifica secuencias, enumera todos los caminos simples y detecta ciclos en cualquier componente. C++ exporta DOT y JSON; Python valida el JSON y dibuja nombres, flechas, pesos y nodos aislados mediante Matplotlib. La solución sigue siendo procedural y no incluye rutas mínimas, que pertenecen al Lab 4.

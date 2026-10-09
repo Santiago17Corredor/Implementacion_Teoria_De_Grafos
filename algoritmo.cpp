@@ -42,6 +42,31 @@ string textoConexion(const Conexion& conexion, bool ponderado) {
     return conexion.existe ? formatearPeso(conexion.peso) : "x";
 }
 
+string escaparJSON(const string& texto) {
+    ostringstream salida;
+
+    for (unsigned char caracter : texto) {
+        switch (caracter) {
+            case '"': salida << "\\\""; break;
+            case '\\': salida << "\\\\"; break;
+            case '\b': salida << "\\b"; break;
+            case '\f': salida << "\\f"; break;
+            case '\n': salida << "\\n"; break;
+            case '\r': salida << "\\r"; break;
+            case '\t': salida << "\\t"; break;
+            default:
+                if (caracter < 0x20) {
+                    salida << "\\u" << hex << setw(4) << setfill('0')
+                           << static_cast<int>(caracter) << dec << setfill(' ');
+                } else {
+                    salida << caracter;
+                }
+        }
+    }
+
+    return salida.str();
+}
+
 string leerLinea(const string& mensaje) {
     cout << mensaje;
     string linea;
@@ -627,6 +652,203 @@ void analizarSecuencia(const vector<int>& secuencia,
     }
 }
 
+double calcularCosto(const vector<int>& recorrido,
+                     const vector<vector<Conexion>>& matriz) {
+    double costo = 0;
+
+    for (int i = 0; i + 1 < static_cast<int>(recorrido.size()); i++) {
+        costo += matriz[recorrido[i]][recorrido[i + 1]].peso;
+    }
+
+    return costo;
+}
+
+void explorarCaminosSimples(int actual, int destino,
+                            const vector<vector<Conexion>>& matriz,
+                            vector<bool>& visitados, vector<int>& recorrido,
+                            vector<vector<int>>& caminos) {
+    if (actual == destino) {
+        caminos.push_back(recorrido);
+        return;
+    }
+
+    for (int vecino = 0; vecino < static_cast<int>(matriz.size()); vecino++) {
+        if (!matriz[actual][vecino].existe || visitados[vecino]) {
+            continue;
+        }
+
+        visitados[vecino] = true;
+        recorrido.push_back(vecino);
+        explorarCaminosSimples(vecino, destino, matriz, visitados, recorrido, caminos);
+        recorrido.pop_back();
+        visitados[vecino] = false;
+    }
+}
+
+void explorarCiclosDesdeOrigen(int actual, int origen,
+                               const vector<vector<Conexion>>& matriz,
+                               TipoGrafo tipo, vector<bool>& visitados,
+                               vector<int>& recorrido,
+                               vector<vector<int>>& ciclos) {
+    for (int vecino = 0; vecino < static_cast<int>(matriz.size()); vecino++) {
+        if (!matriz[actual][vecino].existe) {
+            continue;
+        }
+
+        if (vecino == origen) {
+            vector<int> ciclo = recorrido;
+            ciclo.push_back(origen);
+            bool orientacionNueva = tipo == TipoGrafo::Dirigido ||
+                (recorrido.size() > 2 && recorrido[1] < recorrido.back());
+
+            if (orientacionNueva && esCiclo(ciclo, matriz, tipo)) {
+                ciclos.push_back(ciclo);
+            }
+            continue;
+        }
+
+        if (!visitados[vecino]) {
+            visitados[vecino] = true;
+            recorrido.push_back(vecino);
+            explorarCiclosDesdeOrigen(
+                vecino, origen, matriz, tipo, visitados, recorrido, ciclos);
+            recorrido.pop_back();
+            visitados[vecino] = false;
+        }
+    }
+}
+
+vector<vector<int>> buscarCaminosSimples(
+        int origen, int destino, const vector<vector<Conexion>>& matriz,
+        TipoGrafo tipo) {
+    vector<vector<int>> caminos;
+    vector<bool> visitados(matriz.size(), false);
+    vector<int> recorrido = {origen};
+    visitados[origen] = true;
+
+    if (origen == destino) {
+        explorarCiclosDesdeOrigen(
+            origen, origen, matriz, tipo, visitados, recorrido, caminos);
+    } else {
+        explorarCaminosSimples(
+            origen, destino, matriz, visitados, recorrido, caminos);
+    }
+
+    return caminos;
+}
+
+void imprimirRecorrido(const vector<int>& recorrido,
+                       const vector<string>& nombres) {
+    for (int i = 0; i < static_cast<int>(recorrido.size()); i++) {
+        if (i > 0) {
+            cout << " -> ";
+        }
+        cout << nombres[recorrido[i]];
+    }
+}
+
+void mostrarCaminosEntre(int origen, int destino,
+                         const vector<vector<Conexion>>& matriz,
+                         const vector<string>& nombres, TipoGrafo tipo,
+                         bool ponderado) {
+    vector<vector<int>> caminos = buscarCaminosSimples(origen, destino, matriz, tipo);
+    bool buscaCiclos = origen == destino;
+
+    if (buscaCiclos) {
+        cout << "\nEl origen y el destino son el mismo nodo. "
+             << "Se buscaran ciclos simples.\n";
+    }
+
+    if (caminos.empty()) {
+        if (buscaCiclos) {
+            cout << "No existen ciclos que inicien y terminen en "
+                 << quoted(nombres[origen]) << ".\n";
+        } else {
+            cout << "No existe camino posible entre " << quoted(nombres[origen])
+                 << " y " << quoted(nombres[destino]) << ".\n";
+        }
+        return;
+    }
+
+    cout << (buscaCiclos ? "Ciclos encontrados: " : "Caminos encontrados: ")
+         << caminos.size() << '\n';
+
+    for (int i = 0; i < static_cast<int>(caminos.size()); i++) {
+        cout << (buscaCiclos ? "Ciclo " : "Camino ") << i + 1 << ": ";
+        imprimirRecorrido(caminos[i], nombres);
+        cout << "\n  Longitud: " << caminos[i].size() - 1 << " aristas.";
+        if (ponderado) {
+            cout << " Costo: " << formatearPeso(calcularCosto(caminos[i], matriz)) << '.';
+        }
+        cout << (buscaCiclos ? " Ciclo simple: si.\n" : " Camino simple: si.\n");
+    }
+}
+
+bool buscarCicloDFS(int actual, int padre,
+                    const vector<vector<Conexion>>& matriz, TipoGrafo tipo,
+                    vector<int>& estado, vector<int>& pila,
+                    vector<int>& ciclo) {
+    estado[actual] = 1;
+    pila.push_back(actual);
+
+    for (int vecino = 0; vecino < static_cast<int>(matriz.size()); vecino++) {
+        if (!matriz[actual][vecino].existe ||
+            (tipo == TipoGrafo::NoDirigido && vecino == padre)) {
+            continue;
+        }
+
+        if (estado[vecino] == 0) {
+            if (buscarCicloDFS(vecino, actual, matriz, tipo, estado, pila, ciclo)) {
+                return true;
+            }
+        } else if (estado[vecino] == 1) {
+            auto inicio = find(pila.begin(), pila.end(), vecino);
+            ciclo.assign(inicio, pila.end());
+            ciclo.push_back(vecino);
+            return true;
+        }
+    }
+
+    pila.pop_back();
+    estado[actual] = 2;
+    return false;
+}
+
+vector<int> buscarUnCiclo(const vector<vector<Conexion>>& matriz,
+                          TipoGrafo tipo) {
+    vector<int> estado(matriz.size(), 0);
+    vector<int> pila;
+    vector<int> ciclo;
+
+    for (int nodo = 0; nodo < static_cast<int>(matriz.size()); nodo++) {
+        if (estado[nodo] == 0 &&
+            buscarCicloDFS(nodo, -1, matriz, tipo, estado, pila, ciclo)) {
+            return ciclo;
+        }
+    }
+
+    return {};
+}
+
+void mostrarDeteccionCiclos(const vector<vector<Conexion>>& matriz,
+                            const vector<string>& nombres, TipoGrafo tipo,
+                            bool ponderado) {
+    vector<int> ciclo = buscarUnCiclo(matriz, tipo);
+
+    if (ciclo.empty()) {
+        cout << "\nEl grafo no contiene ciclos; es aciclico.\n";
+        return;
+    }
+
+    cout << "\nEl grafo contiene ciclos.\nCiclo encontrado: ";
+    imprimirRecorrido(ciclo, nombres);
+    cout << "\nLongitud: " << ciclo.size() - 1 << " aristas.";
+    if (ponderado) {
+        cout << " Costo: " << formatearPeso(calcularCosto(ciclo, matriz)) << '.';
+    }
+    cout << "\nClasificacion: ciclo simple.\n";
+}
+
 bool generarArchivoDOT(const vector<vector<Conexion>>& matriz,
                        const vector<string>& nombres,
                        TipoGrafo tipo, bool ponderado,
@@ -668,6 +890,58 @@ bool generarArchivoDOT(const vector<vector<Conexion>>& matriz,
     return !archivo.fail();
 }
 
+bool generarArchivoDatos(const vector<vector<Conexion>>& matriz,
+                         const vector<string>& nombres, TipoGrafo tipo,
+                         bool ponderado, const string& nombreArchivo) {
+    ofstream archivo(nombreArchivo);
+
+    if (!archivo) {
+        return false;
+    }
+
+    bool dirigido = tipo == TipoGrafo::Dirigido;
+    archivo << "{\n  \"dirigido\": " << (dirigido ? "true" : "false")
+            << ",\n  \"ponderado\": " << (ponderado ? "true" : "false")
+            << ",\n  \"nodos\": [";
+
+    for (int i = 0; i < static_cast<int>(nombres.size()); i++) {
+        if (i > 0) {
+            archivo << ", ";
+        }
+        archivo << '"' << escaparJSON(nombres[i]) << '"';
+    }
+
+    archivo << "],\n  \"aristas\": [";
+    bool primera = true;
+
+    for (int i = 0; i < static_cast<int>(matriz.size()); i++) {
+        int inicio = dirigido ? 0 : i + 1;
+
+        for (int j = inicio; j < static_cast<int>(matriz.size()); j++) {
+            if (!matriz[i][j].existe) {
+                continue;
+            }
+
+            if (!primera) {
+                archivo << ',';
+            }
+            archivo << "\n    {\"origen\": " << i << ", \"destino\": " << j;
+            if (ponderado) {
+                archivo << ", \"peso\": " << formatearPeso(matriz[i][j].peso);
+            }
+            archivo << '}';
+            primera = false;
+        }
+    }
+
+    if (!primera) {
+        archivo << '\n';
+    }
+    archivo << "  ]\n}\n";
+    archivo.close();
+    return !archivo.fail();
+}
+
 void mostrarMenu() {
     cout << "\nMenu\n";
     cout << "1. Mostrar matriz de adyacencia\n";
@@ -675,6 +949,8 @@ void mostrarMenu() {
     cout << "3. Consultar nodos adyacentes\n";
     cout << "4. Verificar camino o ciclo\n";
     cout << "5. Generar archivo grafico\n";
+    cout << "6. Buscar todos los caminos entre dos nodos\n";
+    cout << "7. Detectar ciclos automaticamente\n";
     cout << "0. Salir\n";
 }
 
@@ -709,7 +985,7 @@ int main() {
 
     do {
         mostrarMenu();
-        opcion = leerEnteroEnRango("Opcion: ", 0, 5);
+        opcion = leerEnteroEnRango("Opcion: ", 0, 7);
 
         switch (opcion) {
             case 1:
@@ -735,14 +1011,29 @@ int main() {
             }
 
             case 5:
-                if (generarArchivoDOT(
-                        matrizAdyacencia, nombresNodos, tipo, ponderado, "grafo.dot")) {
+                if (generarArchivoDOT(matrizAdyacencia, nombresNodos, tipo,
+                                      ponderado, "grafo.dot") &&
+                    generarArchivoDatos(matrizAdyacencia, nombresNodos, tipo,
+                                        ponderado, "grafo.json")) {
                     cout << "Archivo grafo.dot generado correctamente.\n";
-                    cout << "Puede convertirlo con: "
-                         << "dot -Tpng grafo.dot -o grafo.png\n";
+                    cout << "Archivo grafo.json generado correctamente.\n";
+                    cout << "Visualice el grafo con: python interfaz.py grafo.json\n";
                 } else {
-                    cout << "No se pudo crear el archivo grafo.dot.\n";
+                    cout << "No se pudieron crear los archivos del grafo.\n";
                 }
+                break;
+
+            case 6: {
+                int origen = pedirNodoExistente(nombresNodos, "Nodo origen: ");
+                int destino = pedirNodoExistente(nombresNodos, "Nodo destino: ");
+                mostrarCaminosEntre(
+                    origen, destino, matrizAdyacencia, nombresNodos, tipo, ponderado);
+                break;
+            }
+
+            case 7:
+                mostrarDeteccionCiclos(
+                    matrizAdyacencia, nombresNodos, tipo, ponderado);
                 break;
 
             case 0:

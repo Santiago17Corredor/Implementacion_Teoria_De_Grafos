@@ -1,0 +1,10 @@
+*.exe
+__pycache__/
+*.pyc
+grafo.dot
+grafo.json
+grafo.png
+grafo.svg
+grafo.pdf
+lab3_hu02_*/
+lab3_interfaz_*/

@@ -25,6 +25,12 @@ def probar(executable):
             '    n0 [label="A"];\n    n1 [label="B"];\n    n2 [label="C"];\n'
             '    n0 -- n1 [label="0"];\n    n1 -- n2 [label="-2.5"];\n}\n'
         ),
+        json_esperado=(
+            '{\n  "dirigido": false,\n  "ponderado": true,\n'
+            '  "nodos": ["A", "B", "C"],\n  "aristas": [\n'
+            '    {"origen": 0, "destino": 1, "peso": 0},\n'
+            '    {"origen": 1, "destino": 2, "peso": -2.5}\n  ]\n}\n'
+        ),
         prohibidos=["Tambien forma un ciclo"],
     )
     print("OK: cero distinto de ausencia, simetria, matriz, costo negativo y DOT.")
@@ -42,6 +48,14 @@ def probar(executable):
             '    n0 [label="A"];\n    n1 [label="B"];\n    n2 [label="C"];\n'
             '    n0 -> n1 [label="0"];\n    n0 -> n2 [label="10"];\n'
             '    n1 -> n2 [label="-2.5"];\n    n2 -> n0 [label="4"];\n}\n'
+        ),
+        json_esperado=(
+            '{\n  "dirigido": true,\n  "ponderado": true,\n'
+            '  "nodos": ["A", "B", "C"],\n  "aristas": [\n'
+            '    {"origen": 0, "destino": 1, "peso": 0},\n'
+            '    {"origen": 0, "destino": 2, "peso": 10},\n'
+            '    {"origen": 1, "destino": 2, "peso": -2.5},\n'
+            '    {"origen": 2, "destino": 0, "peso": 4}\n  ]\n}\n'
         ),
     )
     print("OK: direccion, tuplas, ciclo y etiquetas ponderadas.")

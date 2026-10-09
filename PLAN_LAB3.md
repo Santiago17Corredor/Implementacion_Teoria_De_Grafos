@@ -21,8 +21,9 @@ Este plan cubre solamente la Guía 3. No incluye algoritmos de ruta más corta n
 - [x] Representación matemática de vértices y aristas.
 - [x] Consulta de nodos adyacentes, grados y aviso de nodo aislado.
 - [x] Verificación de caminos y ciclos.
+- [x] Enumeración automática de caminos simples y detección global de ciclos.
 - [x] Menú de operaciones.
-- [x] Exportación del grafo a formato DOT.
+- [x] Exportación a DOT y JSON; visualización Python con Matplotlib.
 - [ ] Compilación y ejecución de los casos de prueba en un entorno con compilador C++.
 - [ ] Preparación del informe IEEE y sus evidencias.
 
@@ -67,7 +68,7 @@ La versión actual trabaja sin lazos ni aristas paralelas, con dos modalidades:
 - En un grafo no dirigido, la matriz debe ser simétrica.
 - En un grafo dirigido, la matriz no necesita ser simétrica.
 
-La ponderación modifica captura, validación, matriz, representación matemática, costo de secuencias y etiquetas DOT. La gráfica Python continúa pendiente; no se considera cumplido ese criterio de HU-01/HU-06.
+La ponderación modifica captura, validación, matriz, representación matemática, costo de secuencias y etiquetas DOT/JSON. La gráfica Python también muestra esos pesos mediante Matplotlib, completando ese criterio de HU-01/HU-06.
 
 ## 4. Estructuras de datos
 
@@ -183,9 +184,9 @@ Para grafos dirigidos conviene distinguir:
 
 Se informa el grado en grafos no dirigidos y los grados de entrada/salida en dirigidos. Los grados cuentan conexiones, no pesos. Se avisa que un nodo es aislado solamente si no tiene conexiones incidentes, incluyendo ambas direcciones.
 
-### Camino y ciclo
+### Caminos y ciclos
 
-Para mantener el código básico, el programa no buscará automáticamente todos los caminos. El usuario ingresará una secuencia de nodos y el programa comprobará si representa un camino válido.
+El programa conserva la verificación manual de una secuencia y añade búsquedas automáticas.
 
 ```cpp
 vector<int> pedirSecuenciaNodos(const vector<string>& nombres);
@@ -200,7 +201,7 @@ bool esCiclo(
 );
 ```
 
-Una secuencia es camino cuando cada par consecutivo está conectado. Para ser ciclo debe contener aristas y empezar y terminar en el mismo nodo; en grafos no dirigidos tampoco debe repetir aristas. La búsqueda automática de caminos y ciclos corresponde a las partes 5 y 6 del plan incremental.
+Una secuencia es camino cuando cada par consecutivo está conectado. Para ser ciclo debe contener aristas y empezar y terminar en el mismo nodo; en grafos no dirigidos tampoco debe repetir aristas. Las partes 5 y 6 añadieron la búsqueda automática de caminos simples y ciclos.
 
 Las conexiones se consultan mediante `.existe`, por lo que cero y negativos son pesos válidos. Al verificar una secuencia ponderada también se suma su costo; esto no busca una ruta mínima.
 
@@ -211,12 +212,22 @@ A B C D -> es un camino si existen A-B, B-C y C-D.
 A B C A -> es un ciclo si también existe C-A.
 ```
 
+La opción automática enumera todos los caminos simples entre dos nodos mediante DFS con retroceso. Si origen y destino coinciden, enumera ciclos simples desde ese nodo. Otra operación recorre todos los componentes y encuentra un ciclo testigo, ignorando el retorno inmediato al padre en grafos no dirigidos.
+
+Se buscan caminos simples para garantizar un conjunto finito. No existe truncamiento oculto: en un grafo denso el número de caminos puede crecer factorialmente.
+
 ## 7. Representación gráfica
 
-La opción más sencilla en C++ es generar un archivo `grafo.dot` compatible con Graphviz mediante `<fstream>`.
+El C++ genera `grafo.dot` y `grafo.json`. El JSON conecta la captura C++ con `interfaz.py`, que valida y dibuja mediante Matplotlib.
 
 ```cpp
 bool generarArchivoDOT(
+    const vector<vector<Conexion>>& matriz,
+    const vector<string>& nombres,
+    TipoGrafo tipo, bool ponderado,
+    const string& nombreArchivo
+);
+bool generarArchivoDatos(
     const vector<vector<Conexion>>& matriz,
     const vector<string>& nombres,
     TipoGrafo tipo, bool ponderado,
@@ -240,13 +251,14 @@ graph G {
 }
 ```
 
-El archivo podrá convertirse en imagen con Graphviz:
+DOT puede convertirse en imagen con Graphviz. La visualización principal solicitada por las historias usa:
 
 ```text
-dot -Tpng grafo.dot -o grafo.png
+python interfaz.py grafo.json
+python interfaz.py grafo.json --guardar grafo.png --sin-mostrar
 ```
 
-Primero se implementará y verificará la generación correcta del archivo DOT. La ejecución automática de Graphviz será opcional para evitar que el programa dependa innecesariamente de comandos del sistema.
+La distribución circular separa los nodos, conserva los aislados, usa flechas para arcos y muestra las etiquetas de peso. Los arcos opuestos se curvan para distinguirlos. La dependencia está declarada en `requirements.txt`.
 
 ## 8. Menú propuesto
 
@@ -258,6 +270,8 @@ Una vez creado el grafo, el programa mostrará un menú:
 3. Consultar nodos adyacentes
 4. Verificar camino o ciclo
 5. Generar archivo gráfico
+6. Buscar todos los caminos entre dos nodos
+7. Detectar ciclos automáticamente
 0. Salir
 ```
 
@@ -297,15 +311,17 @@ Resultado esperado: salida matemática coherente con la matriz.
 - Pedir una secuencia de nodos.
 - Determinar si la secuencia es un camino.
 - Determinar si la secuencia es un ciclo.
+- Enumerar automáticamente caminos simples y calcular sus costos.
+- Encontrar un ciclo testigo en cualquier componente.
 
 Resultado esperado: evidencia textual clara de los tres conceptos exigidos.
 
 ### Etapa 5 - Generar la gráfica
 
-- Crear `grafo.dot`.
+- Crear `grafo.dot` y `grafo.json`.
 - Comprobar que todos los nodos aparezcan, incluso los aislados.
 - Comprobar conectores correctos para grafos dirigidos y no dirigidos.
-- Renderizar manualmente una imagen PNG para las evidencias del informe.
+- Renderizar desde Python una ventana o una imagen PNG/SVG/PDF.
 
 Resultado esperado: una imagen consistente con la matriz ingresada.
 
@@ -333,7 +349,7 @@ Nodos: A, B, C
 Aristas: A-B, B-C, C-A
 ```
 
-Debe mostrar una matriz simétrica, los adyacentes correctos y reconocer `A B C A` como ciclo.
+Debe mostrar una matriz simétrica, los adyacentes correctos, enumerar los dos recorridos orientados como un solo ciclo no dirigido y detectar `A B C A` automáticamente.
 
 ### Caso 2 - Grafo dirigido sin ciclo
 
@@ -342,7 +358,7 @@ Nodos: A, B, C, D
 Arcos: A->B, B->C, A->D
 ```
 
-Debe reconocer `A B C` como camino y rechazar `C B A`.
+Debe reconocer `A B C` como camino, rechazar `C B A` y enumerar todos los caminos simples entre un origen y un destino.
 
 ### Caso 3 - Nodo aislado
 
@@ -376,7 +392,8 @@ El Laboratorio 3 estará terminado cuando:
 - Se impriman los conjuntos de vértices y aristas.
 - Se consulten adyacentes.
 - Se verifiquen caminos y ciclos.
-- Se genere una representación gráfica coherente.
+- Se generen DOT/JSON y una representación gráfica Python coherente.
+- Se enumeren caminos simples con longitud/costo y se detecten ciclos en todos los componentes.
 - Las entradas inválidas no bloqueen el programa.
 - Los casos de prueba produzcan los resultados esperados.
 - El informe IEEE incluya metodología, pruebas, resultados, capturas y código fuente.
