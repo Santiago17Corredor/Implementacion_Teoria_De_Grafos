@@ -1,10 +1,10 @@
 # Explicación completa - Laboratorio 3: Teoría de grafos
 
-Actualizado hasta las partes 5 a 8 (caminos, ciclos y visualización), el 8 de octubre de 2026. El seguimiento está en [PLAN_INCREMENTAL.md](PLAN_INCREMENTAL.md). El alcance funcional del Lab 3 está implementado; la interfaz Python fue ejecutada y verificada, mientras la compilación y ejecución del C++ siguen pendientes en un equipo con compilador. Dijkstra, Bellman-Ford y la integración por `subprocess` corresponden al Lab 4 y no se mezclaron aquí.
+Actualizado el 9 de octubre de 2026 con la interfaz gráfica completa. El seguimiento está en [PLAN_INCREMENTAL.md](PLAN_INCREMENTAL.md). `python interfaz.py` abre una sola ventana para configurar el grafo, llenar la matriz, ejecutar consultas y visualizar el resultado. Si `algoritmo.exe` está disponible, Python lo usa mediante `subprocess`; si todavía no se ha compilado, la ventana permanece funcional con un motor de respaldo equivalente. Dijkstra y Bellman-Ford corresponden al Lab 4 y no se mezclaron aquí.
 
 ## 1. ¿Qué se desarrolló?
 
-Se desarrolló un programa de consola en C++ que permite crear y analizar un grafo simple mediante una matriz de adyacencia.
+Se desarrolló un motor procedural en C++ y una interfaz gráfica en Python que permiten crear y analizar un grafo simple mediante una matriz de adyacencia. El programa C++ todavía se puede ejecutar de forma independiente por consola, pero el uso principal comienza en la ventana de Python.
 
 El programa permite:
 
@@ -758,7 +758,17 @@ Los índices evitan ambigüedades con nombres arbitrarios. Una conexión no diri
 
 ### `interfaz.py`
 
-La interfaz recibe `grafo.json`, comprueba la estructura y dibuja con Matplotlib. Antes de dibujar valida booleanos, mínimo de nodos, nombres únicos, índices, lazos, conexiones repetidas y pesos numéricos finitos.
+Al ejecutarse sin argumentos, abre la aplicación completa con Tkinter. Desde la misma ventana se seleccionan la cantidad de nodos, el tipo de grafo y la ponderación; se asignan nombres, se llena una matriz desplazable y se validan las conexiones. Después se puede mostrar la matriz, obtener la representación formal, consultar adyacencias, construir una secuencia, enumerar caminos, detectar ciclos, exportar JSON/DOT y dibujar el grafo en una pestaña de Matplotlib.
+
+La matriz no dirigida comparte cada celda con su posición simétrica y bloquea la diagonal. La interfaz conserva la diferencia entre `x` y un peso cero, muestra mensajes de corrección y obliga a validar de nuevo cuando se modifica el grafo. Si encuentra `algoritmo.exe`, las consultas se envían al motor C++ de forma invisible; si no existe y hay `g++` o `clang++`, intenta compilarlo automáticamente. El respaldo Python permite abrir y demostrar la aplicación aun cuando el equipo todavía no tenga compilador.
+
+Uso principal:
+
+```powershell
+python interfaz.py
+```
+
+El modo anterior sigue disponible para recibir un `grafo.json`, comprobar su estructura y abrir únicamente la visualización:
 
 La distribución circular asigna una posición a cada nodo. Los dígrafos usan flechas; dos arcos opuestos se curvan en sentidos diferentes. Los pesos aparecen junto a sus conexiones, incluido cero. Cada nombre se escribe dentro de su nodo y los aislados se conservan porque las posiciones se crean a partir de la lista completa de nodos.
 
@@ -1012,7 +1022,7 @@ En la opción 2 aparecerá `E = {("A","B",0), ("B","C",-2.5)}`. En la opción 4,
 
 En la opción 3, consultar `B`: sus vecinos son `A, C` y su grado es `2`, no `-2.5`. Estos son resultados esperados para verificar cuando se compile el programa.
 
-## 9. Visualización Python y alternativa Graphviz
+## 9. Interfaz gráfica, visualización y alternativa Graphviz
 
 La opción 5 del menú crea:
 
@@ -1021,7 +1031,7 @@ grafo.dot
 grafo.json
 ```
 
-La opción principal es abrir `grafo.json` con `interfaz.py`, como se explicó arriba. `grafo.dot` se conserva como alternativa y evidencia textual.
+La opción principal es iniciar `python interfaz.py` y trabajar completamente desde la ventana. El botón **Exportar JSON / DOT** guarda ambos archivos en la carpeta elegida y la pestaña **Gráfica** muestra el resultado sin abrir otra aplicación. `grafo.dot` se conserva como alternativa y evidencia textual.
 
 Si Graphviz está instalado, se convierte en PNG con:
 
@@ -1051,13 +1061,19 @@ Con `g++`:
 g++ -std=c++17 -Wall -Wextra -pedantic algoritmo.cpp -o algoritmo.exe
 ```
 
-Para ejecutar:
+Para ejecutar directamente el motor de consola:
 
 ```powershell
 .\algoritmo.exe
 ```
 
-Después de escoger la opción 5:
+Para abrir la aplicación completa, que es ahora la forma recomendada:
+
+```powershell
+python interfaz.py
+```
+
+Para abrir solamente un JSON existente:
 
 ```powershell
 python interfaz.py grafo.json
@@ -1290,7 +1306,7 @@ Estas son las limitaciones de la versión actual:
 - Los pesos se limitan al intervalo de ±mil millones, con la precisión aproximada de `double`; la salida muestra hasta 15 cifras significativas.
 - Enumerar todos los caminos puede tardar mucho y consumir memoria en grafos densos; no se ocultan ni truncan resultados.
 - La distribución gráfica es circular y no garantiza eliminar todos los cruces en grafos densos.
-- La ventana Python se inicia con un comando después de exportar; el `subprocess` automático pertenece a la arquitectura del Lab 4.
+- La interfaz intenta utilizar `algoritmo.exe`; si no existe y el equipo no tiene compilador, activa el motor Python de respaldo e informa ese estado en la parte inferior de la ventana.
 - El JSON conserva el grafo, pero el programa C++ todavía no vuelve a cargarlo en otra ejecución.
 - No se calculan rutas mínimas ni métricas de Dijkstra/Bellman-Ford.
 

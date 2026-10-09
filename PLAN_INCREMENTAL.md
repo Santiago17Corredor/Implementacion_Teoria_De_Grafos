@@ -22,8 +22,8 @@ Este documento actualiza el plan a partir de `Historias de usuario.md`, revisado
 | 4 | HU-07 | Mostrar grados, grados de entrada/salida y aviso explícito de nodo aislado. | Implementada; ejecución pendiente de compilador |
 | 5 | HU-08 | Buscar y enumerar caminos simples entre origen y destino; secuencia, longitud y costo; tratar origen igual a destino. | Implementada; ejecución C++ pendiente de compilador |
 | 6 | HU-09 | Detectar automáticamente ciclos en todo el grafo y mostrar al menos uno; cubrir componentes desconectadas. | Implementada; ejecución C++ pendiente de compilador |
-| 7 | Arquitectura híbrida, base para HU-06 | Separar entrada/salida de la lógica; definir comunicación C++/Python para transferir el grafo y errores. | Base del Lab 3 implementada mediante `grafo.json`; `subprocess` pertenece al Lab 4 |
-| 8 | HU-06 | Dibujar desde Python nombres, flechas y pesos; comprobar nodos aislados y legibilidad. | Implementada y probada con Matplotlib |
+| 7 | Arquitectura híbrida, base para HU-06 | Separar entrada/salida de la lógica; definir comunicación C++/Python para transferir el grafo y errores. | Interfaz completa implementada; usa `algoritmo.exe` mediante `subprocess` cuando está disponible y conserva JSON/DOT |
+| 8 | HU-06 | Dibujar desde Python nombres, flechas y pesos; comprobar nodos aislados y legibilidad. | Implementada en una pestaña de la interfaz y probada con Matplotlib |
 | 9 | HU-10 | Dijkstra propio en C++, pesos no negativos, reconstrucción de ruta y destino inalcanzable. | Posterior: Lab 4 |
 | 10 | HU-11 | Bellman-Ford propio, iteraciones requeridas, ruta y detección de ciclos negativos alcanzables. | Posterior: Lab 4 |
 | 11 | HU-12 y arquitectura híbrida | Completar `subprocess`, JSON, timeout y códigos de retorno; resaltar rutas y presentar costo/algoritmo en Python. | Posterior: Lab 4 |
@@ -210,16 +210,18 @@ No se ejecutaron `git add`, commit ni push. Las partes siguientes cierran el Lab
 
 La enumeración no es un algoritmo de ruta mínima y no ordena por costo. “Todos los caminos posibles” se interpreta como todos los caminos simples: aceptar vértices repetidos permitiría infinitos recorridos cuando existe un ciclo. No se impuso un tope silencioso; un grafo denso puede producir una cantidad factorial de resultados y tardar mucho aunque tenga solo 26 nodos.
 
-### Parte 7 y 8: intercambio y visualización Python
+### Parte 7 y 8: interfaz, intercambio y visualización Python
 
 - La opción 5 conserva `grafo.dot` y además genera `grafo.json` con dirección, ponderación, nombres y lista de aristas.
 - El JSON usa índices para las conexiones y conserva nombres UTF-8, caracteres escapados, nodos aislados, dirección y pesos cero o negativos.
-- `interfaz.py` valida el archivo antes de dibujarlo. Rechaza nombres repetidos, índices inexistentes, lazos, conexiones repetidas y pesos faltantes o no finitos.
+- `python interfaz.py` abre una aplicación completa para configurar nodos, llenar y validar la matriz, consultar adyacencias, verificar secuencias, enumerar caminos, detectar ciclos, exportar y visualizar.
+- Si existe `algoritmo.exe`, la interfaz ejecuta las consultas mediante `subprocess` sin mostrar la terminal. Si encuentra `g++` o `clang++`, intenta compilar el motor automáticamente. Cuando no hay compilador, un motor Python equivalente mantiene la interfaz funcional y muestra claramente ese estado.
+- El modo `python interfaz.py grafo.json` se conserva para validar un archivo existente y abrir solo la gráfica. Rechaza nombres repetidos, índices inexistentes, lazos, conexiones repetidas y pesos faltantes o no finitos.
 - Matplotlib dibuja todos los nodos en una distribución circular, flechas en dígrafos, curvas para arcos opuestos y etiquetas para pesos. Los nodos aislados permanecen visibles.
 - La ventana muestra los identificadores dentro de los nodos y el tipo del grafo. También puede guardar PNG, SVG o PDF sin abrir ventana.
 - Se usa Matplotlib directamente; NetworkX no es necesario. `requirements.txt` declara la dependencia reproducible.
 
-La comunicación de este laboratorio queda desacoplada mediante archivo JSON. La arquitectura de la actividad siguiente exige además que Python invoque el motor de rutas C++ mediante `subprocess` y reciba un único JSON de resultados; eso permanece correctamente en las partes 9–12 del Lab 4.
+La comunicación del Lab 3 usa el ejecutable interactivo existente cuando está compilado y mantiene JSON/DOT como formatos de exportación. La actividad siguiente todavía debe definir el contrato JSON específico de Dijkstra y Bellman-Ford, sus códigos de retorno y sus métricas; eso permanece en las partes 9–12 del Lab 4.
 
 ### Ejecución y pruebas
 
@@ -237,11 +239,18 @@ g++ -std=c++17 -Wall -Wextra -pedantic -D_GLIBCXX_ASSERTIONS pruebas/validar_pes
 g++ -std=c++17 -Wall -Wextra -pedantic -D_GLIBCXX_ASSERTIONS pruebas/validar_recorridos.cpp -o prueba_recorridos.exe
 .\prueba_recorridos.exe
 python pruebas/probar_interfaz.py
+python pruebas/probar_interfaz_completa.py
 ```
 
-La prueba de la interfaz se ejecutó correctamente en este equipo: cubre ambos tipos de grafo, pesos, arcos opuestos, nodo aislado, UTF-8, distribución de 26 nodos, generación real de PNG y diez validaciones de datos. También se comprobó la sintaxis y la ayuda de todos los scripts Python. Las pruebas que dependen de `algoritmo.exe` y las unidades C++ siguen pendientes porque no hay `g++`, `clang++` ni `cl` disponible.
+Las pruebas de la interfaz se ejecutaron correctamente en este equipo: cubren ambos tipos de grafo, pesos, arcos opuestos, nodo aislado, UTF-8, distribución de 26 nodos, generación real de PNG, validaciones, representación formal, grados, caminos, costos, ciclos y exportación JSON/DOT. También se construyó la ventana completa y se incrustó una gráfica en una comprobación de humo. Las pruebas que dependen de `algoritmo.exe` y las unidades C++ siguen pendientes porque no hay `g++`, `clang++` ni `cl` disponible.
 
-Uso normal después de crear el grafo y escoger la opción 5:
+Uso normal de la aplicación completa:
+
+```powershell
+python interfaz.py
+```
+
+Modo opcional para abrir un JSON existente o guardar una imagen sin mostrar ventana:
 
 ```powershell
 python interfaz.py grafo.json
