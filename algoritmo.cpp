@@ -1,10 +1,13 @@
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <limits>
+#include <queue>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -942,6 +945,289 @@ bool generarArchivoDatos(const vector<vector<Conexion>>& matriz,
     return !archivo.fail();
 }
 
+struct AristaGrafo {
+    int u;
+    int v;
+    double peso;
+};
+
+struct ResultadoRuta {
+    bool ejecutado = false;
+    bool errorPesosNegativos = false;
+    bool cicloNegativo = false;
+    bool alcanzable = false;
+    double costo = 0.0;
+    vector<int> ruta;
+    long long relajaciones = 0;
+    long long tiempo_us = 0;
+};
+
+bool tieneAristasNegativas(const vector<vector<Conexion>>& matriz) {
+    for (const auto& fila : matriz) {
+        for (const auto& celda : fila) {
+            if (celda.existe && celda.peso < 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+ResultadoRuta ejecutarDijkstra(int origen, int destino,
+                               const vector<vector<Conexion>>& matriz) {
+    ResultadoRuta res;
+    res.ejecutado = true;
+    if (tieneAristasNegativas(matriz)) {
+        res.errorPesosNegativos = true;
+        return res;
+    }
+
+    auto t1 = chrono::high_resolution_clock::now();
+    int n = static_cast<int>(matriz.size());
+    const double INF = numeric_limits<double>::infinity();
+    vector<double> dist(n, INF);
+    vector<int> prev(n, -1);
+    using ElementoPQ = pair<double, int>;
+    priority_queue<ElementoPQ, vector<ElementoPQ>, greater<ElementoPQ>> pq;
+
+    dist[origen] = 0.0;
+    pq.push({0.0, origen});
+
+    while (!pq.empty()) {
+        auto [d, u] = pq.top();
+        pq.pop();
+
+        if (d > dist[u]) continue;
+        if (u == destino) {
+            break;
+        }
+
+        for (int v = 0; v < n; v++) {
+            if (!matriz[u][v].existe) continue;
+            res.relajaciones++;
+            double nuevo = dist[u] + matriz[u][v].peso;
+            if (nuevo < dist[v]) {
+                dist[v] = nuevo;
+                prev[v] = u;
+                pq.push({nuevo, v});
+            }
+        }
+    }
+
+    auto t2 = chrono::high_resolution_clock::now();
+    res.tiempo_us = chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
+
+    if (dist[destino] != INF) {
+        res.alcanzable = true;
+        res.costo = dist[destino];
+        int cur = destino;
+        vector<bool> visitado(n, false);
+        while (cur != -1 && !visitado[cur]) {
+            visitado[cur] = true;
+            res.ruta.push_back(cur);
+            if (cur == origen) break;
+            cur = prev[cur];
+        }
+        if (!res.ruta.empty() && res.ruta.back() == origen) {
+            reverse(res.ruta.begin(), res.ruta.end());
+        } else {
+            res.alcanzable = false;
+            res.ruta.clear();
+        }
+    }
+
+    return res;
+}
+
+ResultadoRuta ejecutarBellmanFord(int origen, int destino,
+                                  const vector<vector<Conexion>>& matriz) {
+    ResultadoRuta res;
+    res.ejecutado = true;
+    auto t1 = chrono::high_resolution_clock::now();
+    int n = static_cast<int>(matriz.size());
+    const double INF = numeric_limits<double>::infinity();
+    vector<double> dist(n, INF);
+    vector<int> prev(n, -1);
+
+    vector<AristaGrafo> aristas;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (matriz[i][j].existe) {
+                aristas.push_back({i, j, matriz[i][j].peso});
+            }
+        }
+    }
+
+    dist[origen] = 0.0;
+
+    for (int it = 1; it <= n - 1; it++) {
+        bool cambio = false;
+        for (const auto& a : aristas) {
+            if (dist[a.u] != INF) {
+                res.relajaciones++;
+                if (dist[a.u] + a.peso < dist[a.v]) {
+                    dist[a.v] = dist[a.u] + a.peso;
+                    prev[a.v] = a.u;
+                    cambio = true;
+                }
+            }
+        }
+        if (!cambio) break;
+    }
+
+    for (const auto& a : aristas) {
+        if (dist[a.u] != INF && dist[a.u] + a.peso < dist[a.v]) {
+            res.cicloNegativo = true;
+            break;
+        }
+    }
+
+    auto t2 = chrono::high_resolution_clock::now();
+    res.tiempo_us = chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
+
+    if (!res.cicloNegativo && dist[destino] != INF) {
+        res.alcanzable = true;
+        res.costo = dist[destino];
+        int cur = destino;
+        vector<bool> visitado(n, false);
+        while (cur != -1 && !visitado[cur]) {
+            visitado[cur] = true;
+            res.ruta.push_back(cur);
+            if (cur == origen) break;
+            cur = prev[cur];
+        }
+        if (!res.ruta.empty() && res.ruta.back() == origen) {
+            reverse(res.ruta.begin(), res.ruta.end());
+        } else {
+            res.alcanzable = false;
+            res.ruta.clear();
+        }
+    }
+
+    return res;
+}
+
+void mostrarResultadoRuta(const string& nombreAlgoritmo,
+                          const ResultadoRuta& res,
+                          int origen, int destino,
+                          const vector<string>& nombres) {
+    cout << "\n=== " << nombreAlgoritmo << " ===\n";
+    cout << "Origen: " << quoted(nombres[origen])
+         << " -> Destino: " << quoted(nombres[destino]) << '\n';
+
+    if (res.errorPesosNegativos) {
+        cout << "Error: El grafo contiene aristas con peso negativo. "
+             << "El algoritmo de Dijkstra no es aplicable.\n";
+        return;
+    }
+
+    if (res.cicloNegativo) {
+        cout << "ALERTA: Se detecto un ciclo de costo negativo alcanzable.\n";
+        cout << "Relajaciones: " << res.relajaciones << '\n';
+        cout << "Tiempo de ejecucion: " << res.tiempo_us << " us\n";
+        return;
+    }
+
+    if (!res.alcanzable) {
+        cout << "No existe camino entre " << quoted(nombres[origen])
+             << " y " << quoted(nombres[destino]) << ".\n";
+        cout << "Relajaciones: " << res.relajaciones << '\n';
+        cout << "Tiempo de ejecucion: " << res.tiempo_us << " us\n";
+        return;
+    }
+
+    cout << "Ruta: ";
+    imprimirRecorrido(res.ruta, nombres);
+    cout << "\nCosto total: " << formatearPeso(res.costo) << '\n';
+    cout << "Relajaciones: " << res.relajaciones << '\n';
+    cout << "Tiempo de ejecucion: " << res.tiempo_us << " us\n";
+}
+
+void mostrarBenchmark(int origen, int destino,
+                      const vector<vector<Conexion>>& matriz,
+                      const vector<string>& nombres) {
+    cout << "\n=== Benchmark Comparativo: Dijkstra vs Bellman-Ford ===\n";
+    cout << "Origen: " << quoted(nombres[origen])
+         << " -> Destino: " << quoted(nombres[destino]) << "\n\n";
+
+    ResultadoRuta dij = ejecutarDijkstra(origen, destino, matriz);
+    ResultadoRuta bf = ejecutarBellmanFord(origen, destino, matriz);
+
+    cout << left << setw(28) << "Metrica"
+         << "| " << setw(25) << "Dijkstra"
+         << "| " << setw(25) << "Bellman-Ford" << '\n';
+    cout << string(82, '-') << '\n';
+
+    string estadoDij = dij.errorPesosNegativos ? "Error (peso negativo)" :
+                       (!dij.alcanzable ? "No alcanzable" : "Exito");
+    string estadoBf = bf.cicloNegativo ? "Ciclo negativo" :
+                      (!bf.alcanzable ? "No alcanzable" : "Exito");
+    cout << left << setw(28) << "Estado"
+         << "| " << setw(25) << estadoDij
+         << "| " << setw(25) << estadoBf << '\n';
+
+    string costoDij = (!dij.ejecutado || dij.errorPesosNegativos || !dij.alcanzable) ? "N/A" : formatearPeso(dij.costo);
+    string costoBf = (bf.cicloNegativo || !bf.alcanzable) ? "N/A" : formatearPeso(bf.costo);
+    cout << left << setw(28) << "Costo total"
+         << "| " << setw(25) << costoDij
+         << "| " << setw(25) << costoBf << '\n';
+
+    string rutaDij = "N/A";
+    if (dij.alcanzable && !dij.ruta.empty()) {
+        ostringstream ss;
+        for (size_t i = 0; i < dij.ruta.size(); i++) {
+            if (i > 0) ss << "->";
+            ss << nombres[dij.ruta[i]];
+        }
+        rutaDij = ss.str();
+    }
+    string rutaBf = "N/A";
+    if (bf.alcanzable && !bf.ruta.empty()) {
+        ostringstream ss;
+        for (size_t i = 0; i < bf.ruta.size(); i++) {
+            if (i > 0) ss << "->";
+            ss << nombres[bf.ruta[i]];
+        }
+        rutaBf = ss.str();
+    }
+    cout << left << setw(28) << "Ruta"
+         << "| " << setw(25) << (rutaDij.size() > 24 ? rutaDij.substr(0, 21) + "..." : rutaDij)
+         << "| " << setw(25) << (rutaBf.size() > 24 ? rutaBf.substr(0, 21) + "..." : rutaBf) << '\n';
+
+    string relDij = dij.errorPesosNegativos ? "N/A" : to_string(dij.relajaciones);
+    string relBf = to_string(bf.relajaciones);
+    cout << left << setw(28) << "Relajaciones"
+         << "| " << setw(25) << relDij
+         << "| " << setw(25) << relBf << '\n';
+
+    string tiemDij = dij.errorPesosNegativos ? "N/A" : to_string(dij.tiempo_us) + " us";
+    string tiemBf = to_string(bf.tiempo_us) + " us";
+    cout << left << setw(28) << "Tiempo de ejecucion"
+         << "| " << setw(25) << tiemDij
+         << "| " << setw(25) << tiemBf << '\n';
+
+    cout << string(82, '-') << '\n';
+
+    if (dij.errorPesosNegativos) {
+        cout << "Consistencia: Dijkstra no es aplicable debido a aristas con peso negativo.\n"
+             << "              Bellman-Ford es el algoritmo adecuado para este escenario.\n";
+    } else if (bf.cicloNegativo) {
+        cout << "Consistencia: Bellman-Ford detecto un ciclo de costo negativo alcanzable.\n";
+    } else if (dij.alcanzable && bf.alcanzable) {
+        if (abs(dij.costo - bf.costo) < 1e-9 && dij.ruta == bf.ruta) {
+            cout << "Consistencia: Ambos algoritmos produjeron exactamente el mismo costo y ruta.\n";
+        } else if (abs(dij.costo - bf.costo) < 1e-9) {
+            cout << "Consistencia: Ambos algoritmos produjeron el mismo costo minimo con rutas alternas.\n";
+        } else {
+            cout << "Consistencia: Diferencia detectada en costos calculados.\n";
+        }
+    } else if (!dij.alcanzable && !bf.alcanzable) {
+        cout << "Consistencia: Ambos algoritmos determinaron que el destino es inalcanzable.\n";
+    } else {
+        cout << "Consistencia: Discrepancia en alcanzabilidad entre algoritmos.\n";
+    }
+}
+
 void mostrarMenu() {
     cout << "\nMenu\n";
     cout << "1. Mostrar matriz de adyacencia\n";
@@ -951,6 +1237,9 @@ void mostrarMenu() {
     cout << "5. Generar archivo grafico\n";
     cout << "6. Buscar todos los caminos entre dos nodos\n";
     cout << "7. Detectar ciclos automaticamente\n";
+    cout << "8. Algoritmo de Dijkstra\n";
+    cout << "9. Algoritmo de Bellman-Ford\n";
+    cout << "10. Benchmark comparativo (Dijkstra vs Bellman-Ford)\n";
     cout << "0. Salir\n";
 }
 
@@ -985,7 +1274,7 @@ int main() {
 
     do {
         mostrarMenu();
-        opcion = leerEnteroEnRango("Opcion: ", 0, 7);
+        opcion = leerEnteroEnRango("Opcion: ", 0, 10);
 
         switch (opcion) {
             case 1:
@@ -1035,6 +1324,29 @@ int main() {
                 mostrarDeteccionCiclos(
                     matrizAdyacencia, nombresNodos, tipo, ponderado);
                 break;
+
+            case 8: {
+                int origen = pedirNodoExistente(nombresNodos, "Nodo origen: ");
+                int destino = pedirNodoExistente(nombresNodos, "Nodo destino: ");
+                ResultadoRuta res = ejecutarDijkstra(origen, destino, matrizAdyacencia);
+                mostrarResultadoRuta("Algoritmo de Dijkstra", res, origen, destino, nombresNodos);
+                break;
+            }
+
+            case 9: {
+                int origen = pedirNodoExistente(nombresNodos, "Nodo origen: ");
+                int destino = pedirNodoExistente(nombresNodos, "Nodo destino: ");
+                ResultadoRuta res = ejecutarBellmanFord(origen, destino, matrizAdyacencia);
+                mostrarResultadoRuta("Algoritmo de Bellman-Ford", res, origen, destino, nombresNodos);
+                break;
+            }
+
+            case 10: {
+                int origen = pedirNodoExistente(nombresNodos, "Nodo origen: ");
+                int destino = pedirNodoExistente(nombresNodos, "Nodo destino: ");
+                mostrarBenchmark(origen, destino, matrizAdyacencia, nombresNodos);
+                break;
+            }
 
             case 0:
                 cout << "Programa finalizado.\n";

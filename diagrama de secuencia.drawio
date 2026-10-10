@@ -1,0 +1,317 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
+  <diagram name="Página-1" id="ummZtNYen3oYYmbQH1kt">
+    <mxGraphModel dx="2977" dy="2200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-1" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};participant=umlActor;verticalAlign=bottom;labelPosition=center;verticalLabelPosition=top;align=center;size=65;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Usuario" vertex="1">
+          <mxGeometry height="1651" width="35" x="20" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-2" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};size=65;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="AplicacionGrafos (Tkinter)" vertex="1">
+          <mxGeometry height="1651" width="202" x="554" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-3" parent="SIqLAV-hP-3Ke6EBqVmb-2" style="points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="" vertex="1">
+          <mxGeometry height="448" width="10" x="96" y="109" as="geometry" />
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-4" parent="SIqLAV-hP-3Ke6EBqVmb-2" style="points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="" vertex="1">
+          <mxGeometry height="945" width="10" x="96" y="601" as="geometry" />
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-5" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};size=65;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="ConectorProcesoCPP (interfaz.py)" vertex="1">
+          <mxGeometry height="1651" width="255" x="933" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-6" parent="SIqLAV-hP-3Ke6EBqVmb-5" style="points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="" vertex="1">
+          <mxGeometry height="246" width="10" x="122" y="247" as="geometry" />
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-7" parent="SIqLAV-hP-3Ke6EBqVmb-5" style="points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="" vertex="1">
+          <mxGeometry height="773" width="10" x="122" y="655" as="geometry" />
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-8" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};size=65;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="algoritmo.exe (Motor C++17)" vertex="1">
+          <mxGeometry height="1651" width="228" x="1325" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-9" parent="SIqLAV-hP-3Ke6EBqVmb-8" style="points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="" vertex="1">
+          <mxGeometry height="44" width="10" x="109" y="385" as="geometry" />
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-10" parent="SIqLAV-hP-3Ke6EBqVmb-8" style="points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="" vertex="1">
+          <mxGeometry height="129" width="10" x="109" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-11" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};size=65;fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="Visualizador (Matplotlib)" vertex="1">
+          <mxGeometry height="1651" width="193" x="1603" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-12" parent="SIqLAV-hP-3Ke6EBqVmb-11" style="points=[];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};fillColor=light-dark(#eeeeee,#1f2020);strokeColor=light-dark(#999999,#cccccc);fontColor=light-dark(#333333,#cccccc);" value="" vertex="1">
+          <mxGeometry height="92" width="10" x="92" y="1171" as="geometry" />
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-13" parent="1" style="shape=umlFrame;dashed=1;pointerEvents=0;dropTarget=0;strokeColor=#B3B3B3;height=20;width=30;fillColor=light-dark(#eeeeee,#1f2020);fontColor=light-dark(#333333,#cccccc);" value="alt" vertex="1">
+          <mxGeometry height="797" width="1722" x="84" y="779" as="geometry" />
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-14" parent="SIqLAV-hP-3Ke6EBqVmb-13" style="text;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;" value="[Binario C++ disponible y ejecución exitosa]" vertex="1">
+          <mxGeometry height="20" width="1692" x="30" as="geometry" />
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-15" parent="SIqLAV-hP-3Ke6EBqVmb-13" style="shape=line;dashed=1;whiteSpace=wrap;verticalAlign=top;labelPosition=center;verticalLabelPosition=middle;align=center;strokeColor=#B3B3B3;" value="[Binario no existe, timeout o fallo de ejecución]" vertex="1">
+          <mxGeometry height="3" width="1722" y="593" as="geometry" />
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-16" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-1" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-3" value="Ingresa matriz y pulsa &quot;Validar y construir grafo&quot;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="384" y="129" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-17" parent="SIqLAV-hP-3Ke6EBqVmb-16" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="1" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="-287.5" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-18" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-3" style="curved=1;endArrow=block;rounded=0;" target="SIqLAV-hP-3Ke6EBqVmb-3" value="_construir_grafo() (Valida nombres, tipos y celdas)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="710" y="183" />
+              <mxPoint x="710" y="213" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-19" parent="SIqLAV-hP-3Ke6EBqVmb-18" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="2" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="-57" y="-22" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-20" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-3" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-6" value="_ejecutar_cpp(opcion=1, adicionales=[])">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="868" y="267" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-21" parent="SIqLAV-hP-3Ke6EBqVmb-20" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="3" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="-208" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-22" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-6" style="curved=1;endArrow=block;rounded=0;" target="SIqLAV-hP-3Ke6EBqVmb-6" value="generar_entrada_cpp() (Prepara guion stdin)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1115" y="321" />
+              <mxPoint x="1115" y="351" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-23" parent="SIqLAV-hP-3Ke6EBqVmb-22" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="4" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="-57" y="-22" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-24" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-6" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-9" value="subprocess.run(algoritmo.exe, input=guion)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1260" y="405" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-25" parent="SIqLAV-hP-3Ke6EBqVmb-24" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="5" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="-195" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-26" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-8" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;dashed=1;dashPattern=2 3;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-6" value="Retorna stdout (Matriz formateada)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1261" y="459" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-27" parent="SIqLAV-hP-3Ke6EBqVmb-26" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="6" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="179" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-28" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-6" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;dashed=1;dashPattern=2 3;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-3" value="Retorna bloque de texto">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="869" y="513" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-29" parent="SIqLAV-hP-3Ke6EBqVmb-28" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="7" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="192" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-30" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-3" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;dashed=1;dashPattern=2 3;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-1" value="Muestra grafo válido y matriz en &quot;Resultados&quot;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="385" y="567" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-31" parent="SIqLAV-hP-3Ke6EBqVmb-30" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="8" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="271.5" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-32" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-1" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-4" value="Selecciona Origen=&quot;A&quot;, Destino=&quot;D&quot; y pulsa [Ruta Dijkstra]">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="384" y="621" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-33" parent="SIqLAV-hP-3Ke6EBqVmb-32" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="9" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="-287.5" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-34" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-4" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-7" value="_ejecutar_cpp(opcion=8, adicionales=[&quot;A&quot;, &quot;D&quot;])">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="868" y="675" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-35" parent="SIqLAV-hP-3Ke6EBqVmb-34" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="10" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="-208" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-36" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-7" style="curved=1;endArrow=block;rounded=0;" target="SIqLAV-hP-3Ke6EBqVmb-7" value="generar_entrada_cpp(opcion=8, [&quot;A&quot;, &quot;D&quot;])">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1115" y="729" />
+              <mxPoint x="1115" y="759" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-37" parent="SIqLAV-hP-3Ke6EBqVmb-36" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="11" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="-57" y="-22" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-38" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-7" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-10" value="subprocess.run(algoritmo.exe, input=guion)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1260" y="860" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-39" parent="SIqLAV-hP-3Ke6EBqVmb-38" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="12" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="-195" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-40" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-8" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;dashed=1;dashPattern=2 3;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-7" value="stdout (&quot;Ruta: A -&gt; C -&gt; B -&gt; D&quot;, &quot;Costo: 8&quot;)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1261" y="999" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-41" parent="SIqLAV-hP-3Ke6EBqVmb-40" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="13" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="179" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-42" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-7" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;dashed=1;dashPattern=2 3;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-4" value="Retorna texto del resultado">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="869" y="1053" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-43" parent="SIqLAV-hP-3Ke6EBqVmb-42" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="14" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="192" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-44" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-4" style="curved=1;endArrow=block;rounded=0;" target="SIqLAV-hP-3Ke6EBqVmb-4" value="Extrae lista de nodos del camino [0, 2, 1, 3]">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="710" y="1107" />
+              <mxPoint x="710" y="1137" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-45" parent="SIqLAV-hP-3Ke6EBqVmb-44" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="15" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="-57" y="-22" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-46" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-4" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-12" value="_visualizar(camino_resaltado=[0, 2, 1, 3])">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1188" y="1191" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-47" parent="SIqLAV-hP-3Ke6EBqVmb-46" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="16" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="-527.75" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-48" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-11" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;dashed=1;dashPattern=2 3;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-4" value="Figura insertada en pestaña &quot;Gráfica&quot;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1189" y="1293" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-49" parent="SIqLAV-hP-3Ke6EBqVmb-48" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="17" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="511.75" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-50" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-4" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;dashed=1;dashPattern=2 3;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-1" value="Muestra texto en &quot;Resultados&quot; y ruta resaltada en &quot;Gráfica&quot;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="385" y="1347" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-51" parent="SIqLAV-hP-3Ke6EBqVmb-50" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="18" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="271.5" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-52" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-7" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;dashed=1;dashPattern=2 3;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-4" value="Retorna None">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="869" y="1448" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-53" parent="SIqLAV-hP-3Ke6EBqVmb-52" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="19" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="192" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-54" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-4" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-1" value="messagebox.showerror(&quot;Error en motor C++&quot;, MENSAJE_ERROR_CPP)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="385" y="1502" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-55" parent="SIqLAV-hP-3Ke6EBqVmb-54" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="20" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="271.5" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-56" edge="1" parent="1" source="SIqLAV-hP-3Ke6EBqVmb-4" style="verticalAlign=bottom;edgeStyle=elbowEdgeStyle;elbow=vertical;curved=0;rounded=0;dashed=1;dashPattern=2 3;endArrow=block;" target="SIqLAV-hP-3Ke6EBqVmb-1" value="Despliega MENSAJE_ERROR_CPP en pestaña &quot;Resultados&quot;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="385" y="1556" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-57" parent="SIqLAV-hP-3Ke6EBqVmb-56" style="ellipse;aspect=fixed;fillColor=#000000;align=center;fontColor=#FFFFFF;" value="21" vertex="1">
+          <mxGeometry height="14" relative="1" width="14" as="geometry">
+            <mxPoint x="271.5" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-58" parent="1" style="fillColor=#ffff88;strokeColor=#9E916F;fontColor=light-dark(#333333,#cccccc);" value="Valida pesos &gt;= 0&#xa;Priority Queue O((V+E) log V)&#xa;std::chrono medicion us" vertex="1">
+          <mxGeometry height="85" width="228" x="1325" y="880" as="geometry" />
+        </mxCell>
+        <mxCell id="SIqLAV-hP-3Ke6EBqVmb-59" parent="1" style="fillColor=#ffff88;strokeColor=#9E916F;fontColor=light-dark(#333333,#cccccc);" value="FancyArrowPatch color" vertex="1">
+          <mxGeometry height="48" width="193" x="1603" y="1211" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

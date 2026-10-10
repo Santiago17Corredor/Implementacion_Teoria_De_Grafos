@@ -84,7 +84,7 @@ def calcular_posiciones(cantidad):
     ]
 
 
-def _dibujar_en_eje(datos, figura, eje):
+def _dibujar_en_eje(datos, figura, eje, camino_resaltado=None):
     from matplotlib.patches import FancyArrowPatch
 
     nodos = datos["nodos"]
@@ -94,6 +94,13 @@ def _dibujar_en_eje(datos, figura, eje):
     eje.set_aspect("equal")
     eje.axis("off")
 
+    aristas_camino = set()
+    if camino_resaltado and len(camino_resaltado) > 1:
+        for u, v in zip(camino_resaltado, camino_resaltado[1:]):
+            aristas_camino.add((u, v))
+            if not datos["dirigido"]:
+                aristas_camino.add((v, u))
+
     for arista in datos["aristas"]:
         origen = arista["origen"]
         destino = arista["destino"]
@@ -102,13 +109,37 @@ def _dibujar_en_eje(datos, figura, eje):
         curva = 0
         if datos["dirigido"] and (destino, origen) in pares:
             curva = 0.17 if origen < destino else -0.17
+
+        es_del_camino = (origen, destino) in aristas_camino or (
+            not datos["dirigido"] and (destino, origen) in aristas_camino
+        )
+
+        if es_del_camino:
+            color_arista = "#d90429"
+            ancho_linea = 3.2
+            escala_mutacion = 18
+            orden_z = 3
+            alpha_arista = 1.0
+        elif camino_resaltado:
+            color_arista = "#8d99ae"
+            ancho_linea = 1.2
+            escala_mutacion = 14
+            orden_z = 1
+            alpha_arista = 0.6
+        else:
+            color_arista = "#52606d"
+            ancho_linea = 1.7
+            escala_mutacion = 17
+            orden_z = 1
+            alpha_arista = 1.0
+
         flecha = FancyArrowPatch(
             (x1, y1), (x2, y2),
             arrowstyle="-|>" if datos["dirigido"] else "-",
-            connectionstyle=f"arc3,rad={curva}", mutation_scale=17,
-            linewidth=1.7, color="#52606d",
+            connectionstyle=f"arc3,rad={curva}", mutation_scale=escala_mutacion,
+            linewidth=ancho_linea, color=color_arista, alpha=alpha_arista,
             shrinkA=min(58, 17 + len(nodos[origen]) * 2.2),
-            shrinkB=min(58, 17 + len(nodos[destino]) * 2.2), zorder=1,
+            shrinkB=min(58, 17 + len(nodos[destino]) * 2.2), zorder=orden_z,
         )
         eje.add_patch(flecha)
 
@@ -120,46 +151,64 @@ def _dibujar_en_eje(datos, figura, eje):
                 desplazamiento = 0.07 + abs(curva) * 0.35
                 medio_x += -(y2 - y1) / distancia * desplazamiento
                 medio_y += (x2 - x1) / distancia * desplazamiento
+            color_texto = "#d90429" if es_del_camino else "#7b341e"
+            borde_caja = "#d90429" if es_del_camino else "none"
             eje.text(
                 medio_x, medio_y, f'{arista["peso"]:g}', ha="center", va="center",
-                fontsize=max(7, fuente - 1), color="#7b341e", zorder=4,
-                bbox={"boxstyle": "round,pad=0.18", "fc": "#fffaf0", "ec": "none"},
+                fontsize=max(7, fuente - 1), color=color_texto, zorder=orden_z + 3,
+                fontweight="bold" if es_del_camino else "normal",
+                bbox={"boxstyle": "round,pad=0.18", "fc": "#fffaf0", "ec": borde_caja,
+                      "lw": 1.2 if es_del_camino else 0},
             )
 
+    nodos_camino = set(camino_resaltado) if camino_resaltado else set()
     for indice, nombre in enumerate(nodos):
+        if indice in nodos_camino:
+            fc = "#ffb703"
+            ec = "#023047"
+            tc = "#000000"
+            lw = 2.0
+        else:
+            fc = "#2b6cb0"
+            ec = "#1a365d"
+            tc = "white"
+            lw = 1.6
         eje.text(
             *posiciones[indice], nombre, ha="center", va="center", fontsize=fuente,
-            color="white", fontweight="bold", zorder=4,
-            bbox={"boxstyle": "round,pad=0.55", "fc": "#2b6cb0",
-                  "ec": "#1a365d", "lw": 1.6},
+            color=tc, fontweight="bold", zorder=5,
+            bbox={"boxstyle": "round,pad=0.55", "fc": fc, "ec": ec, "lw": lw},
         )
 
     tipo = "dirigido" if datos["dirigido"] else "no dirigido"
     pesos = "ponderado" if datos["ponderado"] else "no ponderado"
-    eje.set_title(f"Grafo {tipo} y {pesos}", fontsize=15, pad=18, color="#17324d")
+    titulo = f"Grafo {tipo} y {pesos}"
+    if camino_resaltado and len(camino_resaltado) > 1:
+        nombres_resaltados = " → ".join(nodos[i] for i in camino_resaltado)
+        titulo += f"\nRuta mínima: {nombres_resaltados}"
+    eje.set_title(titulo, fontsize=13 if camino_resaltado else 15, pad=18, color="#17324d")
     eje.set_xlim(-1.38, 1.38)
     eje.set_ylim(-1.38, 1.38)
     figura.tight_layout()
 
 
-def crear_figura_grafo(datos, tamano=None):
+def crear_figura_grafo(datos, tamano=None, camino_resaltado=None):
     from matplotlib.figure import Figure
 
     validar_grafo(datos)
     lado = min(13, max(7, 6 + len(datos["nodos"]) * 0.23))
     figura = Figure(figsize=tamano or (lado, lado), dpi=100)
-    _dibujar_en_eje(datos, figura, figura.add_subplot(111))
+    _dibujar_en_eje(datos, figura, figura.add_subplot(111), camino_resaltado=camino_resaltado)
     return figura
 
 
-def dibujar_grafo(datos, guardar=None, mostrar=True):
+def dibujar_grafo(datos, guardar=None, mostrar=True, camino_resaltado=None):
     validar_grafo(datos)
     if mostrar:
         import matplotlib.pyplot as plt
 
         lado = min(13, max(7, 6 + len(datos["nodos"]) * 0.23))
         figura, eje = plt.subplots(figsize=(lado, lado))
-        _dibujar_en_eje(datos, figura, eje)
+        _dibujar_en_eje(datos, figura, eje, camino_resaltado=camino_resaltado)
         if hasattr(figura.canvas.manager, "set_window_title"):
             figura.canvas.manager.set_window_title("Laboratorio 3 - Visualizacion del grafo")
         if guardar is not None:
@@ -167,7 +216,7 @@ def dibujar_grafo(datos, guardar=None, mostrar=True):
         plt.show()
         return
 
-    figura = crear_figura_grafo(datos)
+    figura = crear_figura_grafo(datos, camino_resaltado=camino_resaltado)
     if guardar is not None:
         figura.savefig(guardar, dpi=180, bbox_inches="tight")
 
@@ -186,219 +235,10 @@ def matriz_desde_datos(datos):
 
 def formatear_numero(numero):
     return "0" if numero == 0 else format(numero, ".15g")
-
-
-def texto_matriz(datos):
-    matriz = matriz_desde_datos(datos)
-    nombres = datos["nodos"]
-    celdas = [[
-        "x" if valor is None and datos["ponderado"] else
-        "0" if valor is None else formatear_numero(valor)
-        for valor in fila
-    ] for fila in matriz]
-    ancho = max(3, *(len(nombre) + 2 for nombre in nombres),
-                *(len(valor) + 2 for fila in celdas for valor in fila))
-    lineas = ["Matriz de adyacencia:", "".rjust(ancho) + "".join(
-        nombre.rjust(ancho) for nombre in nombres)]
-    for nombre, fila in zip(nombres, celdas):
-        lineas.append(nombre.rjust(ancho) + "".join(valor.rjust(ancho) for valor in fila))
-    return "\n".join(lineas)
-
-
-def texto_representacion(datos):
-    nombres = datos["nodos"]
-    conjunto = ", ".join(json.dumps(nombre, ensure_ascii=False) for nombre in nombres)
-    conexiones = []
-    for arista in datos["aristas"]:
-        origen = json.dumps(nombres[arista["origen"]], ensure_ascii=False)
-        destino = json.dumps(nombres[arista["destino"]], ensure_ascii=False)
-        if datos["dirigido"]:
-            contenido = f"{origen},{destino}"
-            if datos["ponderado"]:
-                contenido += f",{formatear_numero(arista['peso'])}"
-            conexiones.append(f"<{contenido}>")
-        elif datos["ponderado"]:
-            conexiones.append(f"({origen},{destino},{formatear_numero(arista['peso'])})")
-        else:
-            conexiones.append(f"{{{origen},{destino}}}")
-    letra = "A" if datos["dirigido"] else "E"
-    return f"G = (V, {letra})\n\nV = {{{conjunto}}}\n{letra} = {{{', '.join(conexiones)}}}"
-
-
-def texto_adyacencias(datos, indice):
-    matriz = matriz_desde_datos(datos)
-    nombres = datos["nodos"]
-    salientes = [nombres[j] for j, valor in enumerate(matriz[indice]) if valor is not None]
-    if not datos["dirigido"]:
-        texto = (f"Adyacentes de {nombres[indice]}: {', '.join(salientes) or 'Ninguno'}\n"
-                 f"Grado: {len(salientes)}")
-        if not salientes:
-            texto += f"\nEl nodo {nombres[indice]!r} es un nodo aislado."
-        return texto
-
-    entrantes = [nombres[i] for i in range(len(nombres)) if matriz[i][indice] is not None]
-    texto = (
-        f"Sucesores de {nombres[indice]}: {', '.join(salientes) or 'Ninguno'}\n"
-        f"Predecesores de {nombres[indice]}: {', '.join(entrantes) or 'Ninguno'}\n"
-        f"Grado de salida: {len(salientes)}\nGrado de entrada: {len(entrantes)}"
-    )
-    if not salientes and not entrantes:
-        texto += f"\nEl nodo {nombres[indice]!r} es un nodo aislado."
-    return texto
-
-
-def es_camino(secuencia, matriz):
-    return bool(secuencia) and all(
-        matriz[secuencia[i]][secuencia[i + 1]] is not None
-        for i in range(len(secuencia) - 1))
-
-
-def es_camino_simple(secuencia):
-    revisada = secuencia[:-1] if len(secuencia) > 1 and secuencia[0] == secuencia[-1] else secuencia
-    return len(revisada) == len(set(revisada))
-
-
-def es_ciclo(secuencia, matriz, dirigido):
-    if len(secuencia) < 3 or secuencia[0] != secuencia[-1] or not es_camino(secuencia, matriz):
-        return False
-    if dirigido:
-        return True
-    usadas = set()
-    for origen, destino in zip(secuencia, secuencia[1:]):
-        arista = tuple(sorted((origen, destino)))
-        if arista in usadas:
-            return False
-        usadas.add(arista)
-    return True
-
-
-def costo_recorrido(secuencia, matriz):
-    return sum(matriz[secuencia[i]][secuencia[i + 1]] for i in range(len(secuencia) - 1))
-
-
-def texto_secuencia(datos, secuencia):
-    matriz = matriz_desde_datos(datos)
-    if not es_camino(secuencia, matriz):
-        return "La secuencia no es un camino."
-    simple = es_camino_simple(secuencia)
-    texto = f"La secuencia es un camino{' simple' if simple else ''}. "
-    texto += f"Longitud: {len(secuencia) - 1} aristas."
-    if datos["ponderado"]:
-        texto += f"\nCosto total: {formatear_numero(costo_recorrido(secuencia, matriz))}"
-    if es_ciclo(secuencia, matriz, datos["dirigido"]):
-        texto += f"\nTambien forma un ciclo{' simple' if simple else ''}."
-    else:
-        texto += "\nNo forma un ciclo."
-    return texto
-
-
-def buscar_caminos(datos, origen, destino):
-    matriz = matriz_desde_datos(datos)
-    cantidad = len(matriz)
-    encontrados = []
-    if origen == destino:
-        visitados = [False] * cantidad
-        visitados[origen] = True
-
-        def explorar_ciclos(actual, recorrido):
-            for siguiente, valor in enumerate(matriz[actual]):
-                if valor is None:
-                    continue
-                if siguiente == origen and len(recorrido) >= 3:
-                    encontrados.append(recorrido + [origen])
-                elif not visitados[siguiente]:
-                    visitados[siguiente] = True
-                    explorar_ciclos(siguiente, recorrido + [siguiente])
-                    visitados[siguiente] = False
-
-        explorar_ciclos(origen, [origen])
-        if not datos["dirigido"]:
-            unicos = {}
-            for ciclo in encontrados:
-                interno = ciclo[:-1]
-                reverso = [interno[0], *reversed(interno[1:]), interno[0]]
-                clave = min(tuple(ciclo), tuple(reverso))
-                unicos[clave] = ciclo
-            encontrados = list(unicos.values())
-        return encontrados
-
-    visitados = [False] * cantidad
-
-    def explorar(actual, recorrido):
-        if actual == destino:
-            encontrados.append(recorrido.copy())
-            return
-        visitados[actual] = True
-        for siguiente, valor in enumerate(matriz[actual]):
-            if valor is not None and not visitados[siguiente]:
-                recorrido.append(siguiente)
-                explorar(siguiente, recorrido)
-                recorrido.pop()
-        visitados[actual] = False
-
-    explorar(origen, [origen])
-    return encontrados
-
-
-def texto_caminos(datos, origen, destino):
-    caminos = buscar_caminos(datos, origen, destino)
-    nombres = datos["nodos"]
-    if not caminos:
-        if origen == destino:
-            return f"No se encontraron ciclos que comiencen y terminen en {nombres[origen]}."
-        return f"No existe camino entre {nombres[origen]} y {nombres[destino]}."
-    titulo = (f"Ciclos desde {nombres[origen]}" if origen == destino else
-              f"Caminos de {nombres[origen]} a {nombres[destino]}")
-    matriz = matriz_desde_datos(datos)
-    lineas = [f"{titulo}: {len(caminos)} resultado(s).", ""]
-    for numero, camino in enumerate(caminos, 1):
-        linea = f"{numero}. " + " -> ".join(nombres[indice] for indice in camino)
-        linea += f" | Longitud: {len(camino) - 1}"
-        if datos["ponderado"]:
-            linea += f" | Costo: {formatear_numero(costo_recorrido(camino, matriz))}"
-        lineas.append(linea + " | Simple")
-    return "\n".join(lineas)
-
-
-def buscar_un_ciclo(datos):
-    matriz = matriz_desde_datos(datos)
-    estado = [0] * len(matriz)
-    pila = []
-    posicion = {}
-
-    def explorar(actual, padre=-1):
-        estado[actual] = 1
-        posicion[actual] = len(pila)
-        pila.append(actual)
-        for siguiente, valor in enumerate(matriz[actual]):
-            if valor is None or (not datos["dirigido"] and siguiente == padre):
-                continue
-            if estado[siguiente] == 0:
-                ciclo = explorar(siguiente, actual)
-                if ciclo:
-                    return ciclo
-            elif estado[siguiente] == 1:
-                return pila[posicion[siguiente]:] + [siguiente]
-        pila.pop()
-        posicion.pop(actual, None)
-        estado[actual] = 2
-        return None
-
-    for nodo in range(len(matriz)):
-        if estado[nodo] == 0:
-            ciclo = explorar(nodo)
-            if ciclo:
-                return ciclo
-    return []
-
-
-def texto_ciclo(datos):
-    ciclo = buscar_un_ciclo(datos)
-    if not ciclo:
-        return "El grafo no contiene ciclos; es aciclico."
-    nombres = datos["nodos"]
-    return "El grafo contiene al menos un ciclo simple.\n" + " -> ".join(
-        nombres[indice] for indice in ciclo)
+MENSAJE_ERROR_CPP = (
+    "ERROR: El motor de cálculo en C++ (algoritmo.exe) no está disponible o falló la ejecución. "
+    "Asegúrese de tener un compilador C++17 compatible o el binario compilado."
+)
 
 
 def guardar_archivos_grafo(datos, carpeta):
@@ -421,6 +261,61 @@ def guardar_archivos_grafo(datos, carpeta):
     lineas.append("}")
     ruta_dot.write_text("\n".join(lineas) + "\n", encoding="utf-8")
     return ruta_json, ruta_dot
+
+
+def generar_entrada_cpp(datos, opcion, adicionales=None):
+    """Construye el guion en texto plano que espera el stdin de algoritmo.cpp."""
+    if adicionales is None:
+        adicionales = []
+    matriz = matriz_desde_datos(datos)
+    lineas = [
+        str(len(datos["nodos"])),
+        *datos["nodos"],
+        "2" if datos["dirigido"] else "1",
+        "2" if datos["ponderado"] else "1",
+    ]
+    for fila in range(len(matriz)):
+        inicio = 0 if datos["dirigido"] else fila
+        for columna in range(inicio, len(matriz)):
+            valor = matriz[fila][columna]
+            if datos["ponderado"]:
+                lineas.append("x" if valor is None else formatear_numero(valor))
+            else:
+                lineas.append("0" if valor is None else "1")
+    lineas.extend([str(opcion), *adicionales, "0"])
+    return "\n".join(lineas) + "\n"
+
+
+def ejecutar_cpp(datos, opcion, adicionales=None, exe_ruta=None):
+    """Ejecuta una consulta sobre algoritmo.exe y recorta el bloque de salida resultante."""
+    exe = Path(exe_ruta) if exe_ruta else (BASE_DIR / "algoritmo.exe")
+    if not exe.is_file():
+        return None
+    try:
+        entrada = generar_entrada_cpp(datos, opcion, adicionales)
+        proceso = subprocess.run(
+            [str(exe)],
+            input=entrada,
+            cwd=BASE_DIR,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=20,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if proceso.returncode != 0:
+        return None
+    salida = proceso.stdout
+    menu = salida.find("\nMenu\n")
+    inicio = salida.find("Opcion: ", menu)
+    if inicio == -1:
+        return salida.strip()
+    inicio += len("Opcion: ")
+    fin = salida.find("\nMenu\n", inicio)
+    return salida[inicio:fin if fin != -1 else None].strip()
 
 
 class AplicacionGrafos:
@@ -489,7 +384,7 @@ class AplicacionGrafos:
 
         configuracion = ttk.LabelFrame(izquierda, text="1. Configuración", padding=8)
         configuracion.pack(fill="x", pady=(0, 8))
-        self.cantidad_var = tk.IntVar(value=3)
+        self.cantidad_var = tk.StringVar(value="3")
         self.tipo_var = tk.StringVar(value="No dirigido")
         self.ponderado_var = tk.BooleanVar(value=False)
         ttk.Label(configuracion, text="Nodos:").grid(row=0, column=0, sticky="w")
@@ -558,22 +453,28 @@ class AplicacionGrafos:
         self.combo_destino.grid(row=1, column=3, sticky="w", padx=5)
         ttk.Button(operaciones, text="Buscar todos los caminos",
                    command=self._mostrar_caminos).grid(row=2, column=0, columnspan=4, sticky="ew", pady=3)
-        ttk.Label(operaciones, text="Secuencia:").grid(row=3, column=0, sticky="w", pady=3)
+        ttk.Button(operaciones, text="Ruta Dijkstra",
+                   command=self._ruta_dijkstra).grid(row=3, column=0, columnspan=2, sticky="ew", pady=2)
+        ttk.Button(operaciones, text="Ruta Bellman-Ford",
+                   command=self._ruta_bellman_ford).grid(row=3, column=2, columnspan=2, sticky="ew", pady=2, padx=(5, 0))
+        ttk.Button(operaciones, text="Comparar Métodos (Benchmark)",
+                   command=self._comparar_benchmark).grid(row=4, column=0, columnspan=4, sticky="ew", pady=2)
+        ttk.Label(operaciones, text="Secuencia:").grid(row=5, column=0, sticky="w", pady=3)
         self.combo_secuencia = ttk.Combobox(
             operaciones, textvariable=self.secuencia_nodo_var,
             state="readonly", width=13)
-        self.combo_secuencia.grid(row=3, column=1, sticky="w", padx=5)
+        self.combo_secuencia.grid(row=5, column=1, sticky="w", padx=5)
         ttk.Button(operaciones, text="Agregar", command=self._agregar_secuencia).grid(
-            row=3, column=2, sticky="ew")
+            row=5, column=2, sticky="ew")
         ttk.Button(operaciones, text="Quitar último", command=self._quitar_secuencia).grid(
-            row=3, column=3, sticky="ew", padx=(5, 0))
+            row=5, column=3, sticky="ew", padx=(5, 0))
         self.secuencia_texto_var = tk.StringVar(value="(vacía)")
         ttk.Label(operaciones, textvariable=self.secuencia_texto_var, style="Status.TLabel",
-                  wraplength=460).grid(row=4, column=0, columnspan=4, sticky="w", pady=(3, 5))
+                  wraplength=460).grid(row=6, column=0, columnspan=4, sticky="w", pady=(3, 5))
         ttk.Button(operaciones, text="Verificar secuencia",
-                   command=self._verificar_secuencia).grid(row=5, column=0, columnspan=2, sticky="ew")
+                   command=self._verificar_secuencia).grid(row=7, column=0, columnspan=2, sticky="ew")
         ttk.Button(operaciones, text="Limpiar secuencia",
-                   command=self._limpiar_secuencia).grid(row=5, column=2, columnspan=2,
+                   command=self._limpiar_secuencia).grid(row=7, column=2, columnspan=2,
                                                          sticky="ew", padx=(5, 0))
 
         botones = ttk.Frame(derecha)
@@ -616,9 +517,10 @@ class AplicacionGrafos:
         from tkinter import messagebox
 
         try:
-            cantidad = int(self.cantidad_var.get())
-        except (ValueError, TypeError):
-            messagebox.showerror("Cantidad inválida", "Ingrese una cantidad entre 2 y 26.")
+            val = str(self.cantidad_var.get()).strip()
+            cantidad = int(val)
+        except Exception:
+            messagebox.showerror("Cantidad inválida", "Ingrese una cantidad entera entre 2 y 26.")
             return
         if not 2 <= cantidad <= 26:
             messagebox.showerror("Cantidad inválida", "El grafo requiere entre 2 y 26 nodos.")
@@ -766,16 +668,21 @@ class AplicacionGrafos:
             combo.configure(values=nombres)
         self.nodo_var.set(nombres[0])
         self.origen_var.set(nombres[0])
-        self.destino_var.set(nombres[-1])
         self.secuencia_nodo_var.set(nombres[0])
         tipo = "dirigido" if dirigido else "no dirigido"
         pesos = "ponderado" if ponderado else "no ponderado"
-        motor = "motor C++" if self.motor_cpp else "motor integrado de la interfaz"
+        if self.exe_cpp.is_file():
+            self.motor_cpp = True
+        motor = "motor C++ detectado" if self.motor_cpp else "C++ no disponible"
         self.estado_var.set(f"Grafo válido: {cantidad} nodos · {tipo} · {pesos} · {motor}.")
+        resultado_cpp = self._ejecutar_cpp(1, [])
+        if resultado_cpp:
+            cuerpo = resultado_cpp
+        else:
+            cuerpo = f"Matriz lista.\n\n{MENSAJE_ERROR_CPP}"
         self._mostrar_resultado(
             "Grafo construido",
-            f"Cantidad de nodos: {cantidad}\nTipo: {tipo}\nPonderación: {pesos}\n\n"
-            + texto_matriz(datos))
+            f"Cantidad de nodos: {cantidad}\nTipo: {tipo}\nPonderación: {pesos}\n\n{cuerpo}")
 
     def _asegurar_grafo(self):
         from tkinter import messagebox
@@ -799,25 +706,31 @@ class AplicacionGrafos:
         self.resultados.configure(state="disabled")
         self.pestanas.select(0)
 
-    def _resultado_operacion(self, titulo, opcion, adicionales, alternativo):
+    def _resultado_operacion(self, titulo, opcion, adicionales=None):
+        if adicionales is None:
+            adicionales = []
         resultado_cpp = self._ejecutar_cpp(opcion, adicionales)
-        self._mostrar_resultado(titulo + (" · motor C++" if resultado_cpp else ""),
-                                resultado_cpp or alternativo)
+        if resultado_cpp is None:
+            from tkinter import messagebox
+
+            messagebox.showerror("Error en motor C++", MENSAJE_ERROR_CPP)
+            self._mostrar_resultado(titulo + " · ERROR", MENSAJE_ERROR_CPP)
+            return None
+        self._mostrar_resultado(titulo, resultado_cpp)
+        return resultado_cpp
 
     def _mostrar_matriz(self):
         if self._asegurar_grafo():
-            self._resultado_operacion("Matriz de adyacencia", 1, [], texto_matriz(self.datos))
+            self._resultado_operacion("Matriz de adyacencia", 1)
 
     def _mostrar_representacion(self):
         if self._asegurar_grafo():
-            self._resultado_operacion("Representación matemática", 2, [],
-                                      texto_representacion(self.datos))
+            self._resultado_operacion("Representación matemática", 2)
 
     def _consultar_adyacentes(self):
         if self._asegurar_grafo():
             nombre = self.nodo_var.get()
-            self._resultado_operacion(f"Consulta de {nombre}", 3, [nombre],
-                                      texto_adyacencias(self.datos, self._indice(nombre)))
+            self._resultado_operacion(f"Consulta de {nombre}", 3, [nombre])
 
     def _agregar_secuencia(self):
         if self._asegurar_grafo():
@@ -850,29 +763,108 @@ class AplicacionGrafos:
             return
         nombres = [self.datos["nodos"][indice] for indice in self.secuencia]
         self._resultado_operacion("Verificación de secuencia", 4,
-                                  [str(len(nombres)), *nombres],
-                                  texto_secuencia(self.datos, self.secuencia))
+                                  [str(len(nombres)), *nombres])
 
     def _mostrar_caminos(self):
         if self._asegurar_grafo():
             origen = self._indice(self.origen_var.get())
             destino = self._indice(self.destino_var.get())
             adicionales = [self.datos["nodos"][origen], self.datos["nodos"][destino]]
-            self._resultado_operacion("Búsqueda de caminos", 6, adicionales,
-                                      texto_caminos(self.datos, origen, destino))
+            self._resultado_operacion("Búsqueda de caminos", 6, adicionales)
 
     def _detectar_ciclos(self):
         if self._asegurar_grafo():
-            self._resultado_operacion("Detección de ciclos", 7, [], texto_ciclo(self.datos))
+            self._resultado_operacion("Detección de ciclos", 7)
 
-    def _visualizar(self):
+    def _ruta_dijkstra(self):
+        if not self._asegurar_grafo():
+            return
+        origen = self._indice(self.origen_var.get())
+        destino = self._indice(self.destino_var.get())
+        n_orig = self.datos["nodos"][origen]
+        n_dest = self.datos["nodos"][destino]
+        resultado_cpp = self._ejecutar_cpp(8, [n_orig, n_dest])
+        if resultado_cpp is None:
+            from tkinter import messagebox
+
+            messagebox.showerror("Error en motor C++", MENSAJE_ERROR_CPP)
+            self._mostrar_resultado(f"Ruta Dijkstra ({n_orig} → {n_dest}) · ERROR", MENSAJE_ERROR_CPP)
+            return
+
+        texto = resultado_cpp
+        for prefijo in ("Nodo origen: Nodo destino:", "Nodo origen:", "Nodo destino:"):
+            if texto.startswith(prefijo):
+                texto = texto[len(prefijo):].strip()
+        camino = []
+        for linea in texto.splitlines():
+            if linea.strip().startswith("Ruta:"):
+                partes = linea.split(":", 1)[1].strip().split("->")
+                camino = [self._indice(p.strip()) for p in partes if p.strip() in self.datos["nodos"]]
+                break
+
+        self._mostrar_resultado(f"Ruta Dijkstra ({n_orig} → {n_dest})", texto)
+        if camino:
+            self._visualizar(camino_resaltado=camino)
+
+    def _ruta_bellman_ford(self):
+        if not self._asegurar_grafo():
+            return
+        origen = self._indice(self.origen_var.get())
+        destino = self._indice(self.destino_var.get())
+        n_orig = self.datos["nodos"][origen]
+        n_dest = self.datos["nodos"][destino]
+        resultado_cpp = self._ejecutar_cpp(9, [n_orig, n_dest])
+        if resultado_cpp is None:
+            from tkinter import messagebox
+
+            messagebox.showerror("Error en motor C++", MENSAJE_ERROR_CPP)
+            self._mostrar_resultado(f"Ruta Bellman-Ford ({n_orig} → {n_dest}) · ERROR", MENSAJE_ERROR_CPP)
+            return
+
+        texto = resultado_cpp
+        for prefijo in ("Nodo origen: Nodo destino:", "Nodo origen:", "Nodo destino:"):
+            if texto.startswith(prefijo):
+                texto = texto[len(prefijo):].strip()
+        camino = []
+        for linea in texto.splitlines():
+            if linea.strip().startswith("Ruta:"):
+                partes = linea.split(":", 1)[1].strip().split("->")
+                camino = [self._indice(p.strip()) for p in partes if p.strip() in self.datos["nodos"]]
+                break
+
+        self._mostrar_resultado(f"Ruta Bellman-Ford ({n_orig} → {n_dest})", texto)
+        if camino:
+            self._visualizar(camino_resaltado=camino)
+
+    def _comparar_benchmark(self):
+        if not self._asegurar_grafo():
+            return
+        origen = self._indice(self.origen_var.get())
+        destino = self._indice(self.destino_var.get())
+        n_orig = self.datos["nodos"][origen]
+        n_dest = self.datos["nodos"][destino]
+        resultado_cpp = self._ejecutar_cpp(10, [n_orig, n_dest])
+        if resultado_cpp is None:
+            from tkinter import messagebox
+
+            messagebox.showerror("Error en motor C++", MENSAJE_ERROR_CPP)
+            self._mostrar_resultado(f"Benchmark Comparativo ({n_orig} vs {n_dest}) · ERROR", MENSAJE_ERROR_CPP)
+            return
+
+        texto = resultado_cpp
+        for prefijo in ("Nodo origen: Nodo destino:", "Nodo origen:", "Nodo destino:"):
+            if texto.startswith(prefijo):
+                texto = texto[len(prefijo):].strip()
+        self._mostrar_resultado(f"Benchmark Comparativo ({n_orig} vs {n_dest})", texto)
+
+    def _visualizar(self, camino_resaltado=None):
         if not self._asegurar_grafo():
             return
         from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
         for control in self.pestana_grafica.winfo_children():
             control.destroy()
-        figura = crear_figura_grafo(self.datos, tamano=(4.2, 2.5))
+        figura = crear_figura_grafo(self.datos, tamano=(4.2, 2.5), camino_resaltado=camino_resaltado)
         self.lienzo_figura = FigureCanvasTkAgg(figura, master=self.pestana_grafica)
         self.lienzo_figura.draw()
         self.barra_figura = NavigationToolbar2Tk(self.lienzo_figura, self.pestana_grafica,
@@ -917,46 +909,17 @@ class AplicacionGrafos:
         if self.motor_cpp:
             self.estado_var.set("Interfaz lista · motor C++ compilado automáticamente.")
         else:
-            self.estado_var.set(
-                "Interfaz lista · C++ no compilado; se usa el motor integrado de respaldo.")
+            self.estado_var.set("ATENCIÓN: motor C++ no disponible. Se requiere compilar algoritmo.cpp.")
 
-    def _entrada_cpp(self, opcion, adicionales):
-        lineas = [str(len(self.datos["nodos"])), *self.datos["nodos"],
-                  "2" if self.datos["dirigido"] else "1",
-                  "2" if self.datos["ponderado"] else "1"]
-        for fila in range(len(self.matriz)):
-            inicio = 0 if self.datos["dirigido"] else fila
-            for columna in range(inicio, len(self.matriz)):
-                valor = self.matriz[fila][columna]
-                if self.datos["ponderado"]:
-                    lineas.append("x" if valor is None else formatear_numero(valor))
-                else:
-                    lineas.append("0" if valor is None else "1")
-        lineas.extend([str(opcion), *adicionales, "0"])
-        return "\n".join(lineas) + "\n"
+    def _entrada_cpp(self, opcion, adicionales=None):
+        return generar_entrada_cpp(self.datos, opcion, adicionales)
 
-    def _ejecutar_cpp(self, opcion, adicionales):
+    def _ejecutar_cpp(self, opcion, adicionales=None):
+        if self.exe_cpp.is_file():
+            self.motor_cpp = True
         if not self.motor_cpp or not self.exe_cpp.is_file():
             return None
-        try:
-            proceso = subprocess.run(
-                [str(self.exe_cpp)], input=self._entrada_cpp(opcion, adicionales),
-                cwd=BASE_DIR, capture_output=True, text=True, encoding="utf-8",
-                errors="replace", timeout=20,
-                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
-        except (OSError, subprocess.SubprocessError):
-            self.motor_cpp = False
-            return None
-        if proceso.returncode != 0:
-            return None
-        salida = proceso.stdout
-        menu = salida.find("\nMenu\n")
-        inicio = salida.find("Opcion: ", menu)
-        if inicio == -1:
-            return salida.strip()
-        inicio += len("Opcion: ")
-        fin = salida.find("\nMenu\n", inicio)
-        return salida[inicio:fin if fin != -1 else None].strip()
+        return ejecutar_cpp(self.datos, opcion, adicionales, exe_ruta=self.exe_cpp)
 
 
 def iniciar_interfaz():

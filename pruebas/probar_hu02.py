@@ -49,7 +49,7 @@ def probar(executable):
     ejecutar(
         executable,
         ["texto", "1", "0", "-1", "27", "2", "", "   ", "  v1  ",
-         "v1", "15", "1", "1", "0", "error", "2", "1", "0", "9", "2", "3",
+         "v1", "15", "1", "1", "0", "error", "2", "1", "0", "99", "2", "3",
          "inexistente", "v1", "4", "2", "v1", "15", "0"],
         ["El grafo requiere al menos 2 nodos", "Ingrese un numero entre 2 y 26",
          "El nombre del nodo no puede estar vacio", "El nombre ya pertenece",
